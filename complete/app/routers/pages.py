@@ -57,9 +57,9 @@ async def dashboard(request: Request):
     total_exercise = sum([log.duration_min for log in await ExerciseLog.filter(user=user)])
 
     return templates.TemplateResponse(
+        request,
         "dashboard.html",
         {
-            "request": request,
             "user": user,
             "water_logs": water_logs,
             "exercise_logs": exercise_logs,
@@ -75,9 +75,7 @@ async def dashboard(request: Request):
 async def water_page(request: Request):
     user = await get_or_create_default_user()
     logs = await WaterLog.filter(user=user).order_by("-logged_at")
-    return templates.TemplateResponse(
-        "water.html", {"request": request, "user": user, "logs": logs}
-    )
+    return templates.TemplateResponse(request, "water.html", {"user": user, "logs": logs})
 
 
 @router.post("/water")
@@ -114,7 +112,7 @@ async def exercise_page(request: Request):
     user = await get_or_create_default_user()
     logs = await ExerciseLog.filter(user=user).order_by("-logged_at")
     return templates.TemplateResponse(
-        "exercise.html", {"request": request, "user": user, "logs": logs}
+        request, "exercise.html", {"user": user, "logs": logs}
     )
 
 
@@ -168,9 +166,7 @@ async def delete_exercise(log_id: int):
 async def sleep_page(request: Request):
     user = await get_or_create_default_user()
     logs = await SleepLog.filter(user=user).order_by("-sleep_date")
-    return templates.TemplateResponse(
-        "sleep.html", {"request": request, "user": user, "logs": logs}
-    )
+    return templates.TemplateResponse(request, "sleep.html", {"user": user, "logs": logs})
 
 
 @router.post("/sleep")
@@ -223,9 +219,7 @@ async def delete_sleep(log_id: int):
 async def meal_page(request: Request):
     user = await get_or_create_default_user()
     logs = await MealLog.filter(user=user).order_by("-eaten_at")
-    return templates.TemplateResponse(
-        "meal.html", {"request": request, "user": user, "logs": logs}
-    )
+    return templates.TemplateResponse(request, "meal.html", {"user": user, "logs": logs})
 
 
 @router.post("/meal")
@@ -278,9 +272,9 @@ async def report_page(request: Request):
     avg_per_day = round(total_water / days, 1) if days else 0
 
     return templates.TemplateResponse(
+        request,
         "report.html",
         {
-            "request": request,
             "user": user,
             "chart_url": "/static/img/water_report.png",
             "total_water": total_water,
