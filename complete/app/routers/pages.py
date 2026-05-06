@@ -9,6 +9,7 @@ import pandas as pd
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import koreanize_matplotlib
 
 from app.models.exercise import ExerciseLog
 from app.models.meal import MealLog
