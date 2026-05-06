@@ -8,6 +8,7 @@ DB_URL = f"sqlite://{DB_PATH}"
 
 
 async def init_db() -> None:
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     await Tortoise.init(
         db_url=DB_URL,
         modules={
@@ -17,6 +18,7 @@ async def init_db() -> None:
                 # TODO: Exercise/Sleep/Meal 모델을 추가하세요.
             ]
         },
+        _enable_global_fallback=True,
     )
     await Tortoise.generate_schemas()
 
