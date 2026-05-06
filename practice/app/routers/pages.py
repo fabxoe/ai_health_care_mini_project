@@ -9,6 +9,8 @@ import pandas as pd
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import koreanize_matplotlib
+
 
 from app.models.water import WaterLog
 from app.services.mock_data import (
@@ -62,9 +64,9 @@ async def dashboard(request: Request):
     water_logs = await WaterLog.filter(user=user).order_by("-logged_at").limit(5)
 
     return templates.TemplateResponse(
+        request,
         "dashboard.html",
         {
-            "request": request,
             "user": user,
             "water_logs": water_logs,
             "exercise_logs": list_exercise()[:5],
@@ -79,7 +81,7 @@ async def water_page(request: Request):
     user = await get_or_create_default_user()
     logs = await WaterLog.filter(user=user).order_by("-logged_at")
     return templates.TemplateResponse(
-        "water.html", {"request": request, "user": user, "logs": logs}
+        request, "water.html", {"user": user, "logs": logs}
     )
 
 
@@ -116,7 +118,7 @@ async def delete_water(log_id: int):
 async def exercise_page(request: Request):
     user = await get_or_create_default_user()
     return templates.TemplateResponse(
-        "exercise.html", {"request": request, "user": user, "logs": list_exercise()}
+        request, "exercise.html", {"user": user, "logs": list_exercise()}
     )
 
 
@@ -157,7 +159,7 @@ async def delete_exercise_log(log_id: int):
 async def sleep_page(request: Request):
     user = await get_or_create_default_user()
     return templates.TemplateResponse(
-        "sleep.html", {"request": request, "user": user, "logs": list_sleep()}
+        request, "sleep.html", {"user": user, "logs": list_sleep()}
     )
 
 
@@ -208,7 +210,7 @@ async def delete_sleep_log(log_id: int):
 async def meal_page(request: Request):
     user = await get_or_create_default_user()
     return templates.TemplateResponse(
-        "meal.html", {"request": request, "user": user, "logs": list_meal()}
+        request, "meal.html", {"user": user, "logs": list_meal()}
     )
 
 
@@ -254,9 +256,9 @@ async def report_page(request: Request):
     avg_per_day = round(total_water / days, 1) if days else 0
 
     return templates.TemplateResponse(
+        request,
         "report.html",
         {
-            "request": request,
             "user": user,
             "chart_url": "/static/img/water_report.png",
             "total_water": total_water,
