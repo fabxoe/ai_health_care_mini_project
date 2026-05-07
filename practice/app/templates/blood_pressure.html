@@ -65,23 +65,48 @@
   </div>
   <ul class="list">
     {% for log in logs %}
-    <li class="list-row" style="flex-direction: column; align-items: stretch; gap: 10px;">
-      <div class="item-main" style="width: 100%;">
-        <span>{{ log.measured_at.strftime("%Y-%m-%d %H:%M") }}</span>
-        <strong>혈압: {{ log.systolic }} / {{ log.diastolic }} mmHg (맥박: {{ log.pulse }}bpm)</strong>
-        <span class="muted" style="font-size: 0.85em;">평균: {{ log.mean_pressure or '-' }} | 심부담: {{ log.heart_burden or '-' }} | 패턴: {{ log.pulse_wave_pattern or 'None' }}</span>
-        
+    <li class="list-row" style="flex-direction: column; align-items: stretch; gap: 0;">
+      <div class="record-info-row">
+        <div class="info">
+          <span class="muted" style="font-size:0.82em;">{{ log.measured_at.strftime("%Y-%m-%d %H:%M") }}</span>
+          <strong>혈압: {{ log.systolic }} / {{ log.diastolic }} mmHg &nbsp;|&nbsp; 맥박: {{ log.pulse }}bpm</strong>
+          <span class="muted" style="font-size:0.82em;">평균: {{ log.mean_pressure or '-' }} &nbsp;|&nbsp; 심부담: {{ log.heart_burden or '-' }} &nbsp;|&nbsp; 패턴: {{ log.pulse_wave_pattern or 'None' }}</span>
+        </div>
+        <div style="flex-shrink:0;">
+          <form method="post" action="/blood-pressure/{{ log.id }}/delete" style="margin:0;">
+            <button class="button-danger" type="submit">삭제</button>
+          </form>
+        </div>
+      </div>
+      <div class="record-image-section">
+        <div class="record-image-actions">
+          {% if log.image_path %}
+          <button type="button" class="button-secondary" style="font-size:0.8em; padding:4px 10px;"
+            onclick="toggleInlinePreview('{{ log.id }}')">
+            🖼 인라인 토글
+          </button>
+          <button type="button" class="button-secondary" style="font-size:0.8em; padding:4px 10px;"
+            onclick="openLightbox('{{ log.image_path }}')">
+            🔍 팝업 크게보기
+          </button>
+          <button type="button" class="button-secondary" style="font-size:0.8em; padding:4px 10px;"
+            onclick="resetViewer('{{ log.id }}')">
+            🔄 초기화
+          </button>
+          <span class="muted" style="font-size: 0.75em; margin-left: 4px;">🖱 휠로 확대/축소, 드래그로 이동</span>
+          {% endif %}
+          <form method="post" action="/blood-pressure/{{ log.id }}/upload-image" enctype="multipart/form-data">
+            <input type="file" name="image" accept="image/*" required style="font-size:0.78em;" />
+            <button type="submit" class="button-secondary" style="font-size:0.78em; padding:4px 8px; white-space:nowrap;">
+              {% if log.image_path %}🔄 교체{% else %}📎 원본 업로드{% endif %}
+            </button>
+          </form>
+        </div>
         {% if log.image_path %}
-        <div style="margin-top: 10px;">
-          <button type="button" class="button-secondary" style="font-size: 0.8em; padding: 4px 8px;" onclick="const img = document.getElementById('img-{{ log.id }}'); img.style.display = img.style.display==='none' ? 'block' : 'none';">🖼 원본 보기 토글</button>
-          <img id="img-{{ log.id }}" src="{{ log.image_path }}" style="display: none; max-width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid var(--border-color);" />
+        <div id="viewport-{{ log.id }}" class="preview-viewport">
+          <img src="{{ log.image_path }}" alt="혈압 측정 원본" />
         </div>
         {% endif %}
-      </div>
-      <div class="item-actions" style="justify-content: flex-end;">
-        <form method="post" action="/blood-pressure/{{ log.id }}/delete" style="margin:0;">
-          <button class="button-danger" type="submit">삭제</button>
-        </form>
       </div>
     </li>
     {% else %}

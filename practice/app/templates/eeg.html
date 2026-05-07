@@ -51,38 +51,64 @@
   </div>
   <ul class="list">
     {% for log in logs %}
-    <li class="list-row" style="flex-direction: column; align-items: stretch; gap: 10px;">
-      <div class="item-main" style="width: 100%; display: flex; justify-content: space-between; align-items: flex-start;">
-        <div style="flex: 1;">
-          <span>{{ log.measured_at.strftime("%Y-%m-%d %H:%M:%S") }}</span>
-          <strong>조건: {{ log.eyes_condition or '미상' }} | 담당의: {{ log.clinician or '미상' }}</strong>
-          <div class="muted" style="font-size: 0.85em; margin-top: 4px;">
-            <div>특이사항: {{ log.comments or '-' }}</div>
-            <div>소견요약: {{ log.summary or '-' }}</div>
-          </div>
-          
-          {% if log.ai_interpretation %}
-          <div style="margin-top: 10px; padding: 12px; background: rgba(110, 123, 255, 0.1); border-left: 3px solid #6e7bff; border-radius: 4px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="const ai = document.getElementById('ai-{{ log.id }}'); ai.style.display = ai.style.display==='none' ? 'block' : 'none';">
-              <strong style="color: #c9d1ff; font-size: 0.9em;">💡 AI 심층 분석 소견</strong>
-              <span style="font-size: 0.8em; color: #8c95a8;">자세히 보기 ▼</span>
-            </div>
-            <div id="ai-{{ log.id }}" style="display: none; margin-top: 10px; font-size: 0.85em; line-height: 1.6; white-space: pre-wrap; color: #e9ecff;">{{ log.ai_interpretation }}</div>
-          </div>
-          {% endif %}
-          
-          {% if log.image_path %}
-          <div style="margin-top: 10px;">
-            <button type="button" class="button-secondary" style="font-size: 0.8em; padding: 4px 8px;" onclick="const img = document.getElementById('img-{{ log.id }}'); img.style.display = img.style.display==='none' ? 'block' : 'none';">🖼 결과지 원본 보기 토글</button>
-            <img id="img-{{ log.id }}" src="{{ log.image_path }}" style="display: none; max-width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid var(--border-color);" />
-          </div>
-          {% endif %}
+    <li class="list-row" style="flex-direction: column; align-items: stretch; gap: 0;">
+      <!-- 정보 + 삭제 -->
+      <div class="record-info-row">
+        <div class="info">
+          <span class="muted" style="font-size:0.82em;">{{ log.measured_at.strftime("%Y-%m-%d %H:%M:%S") }}</span>
+          <strong>조건: {{ log.eyes_condition or '미상' }} &nbsp;|&nbsp; 담당의: {{ log.clinician or '미상' }}</strong>
+          <span class="muted" style="font-size:0.82em;">특이사항: {{ log.comments or '-' }}</span>
+          <span class="muted" style="font-size:0.82em;">소견: {{ log.summary or '-' }}</span>
         </div>
-        <div class="item-actions" style="display: flex; gap: 5px;">
+        <div style="flex-shrink:0;">
           <form method="post" action="/eeg/{{ log.id }}/delete" style="margin:0;">
             <button class="button-danger" type="submit">삭제</button>
           </form>
         </div>
+      </div>
+
+      <!-- AI 심층 분석 -->
+      {% if log.ai_interpretation %}
+      <div style="margin-top: 10px; padding: 12px; background: rgba(110, 123, 255, 0.1); border-left: 3px solid #6e7bff; border-radius: 4px; width: 100%;">
+        <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;"
+          onclick="const ai = document.getElementById('ai-{{ log.id }}'); ai.style.display = ai.style.display==='none' ? 'block' : 'none';">
+          <strong style="color: #c9d1ff; font-size: 0.9em;">💡 AI 심층 분석 소견</strong>
+          <span style="font-size: 0.8em; color: #8c95a8;">자세히 보기 ▼</span>
+        </div>
+        <div id="ai-{{ log.id }}" style="display: none; margin-top: 10px; font-size: 0.85em; line-height: 1.6; white-space: pre-wrap; color: #e9ecff;">{{ log.ai_interpretation }}</div>
+      </div>
+      {% endif %}
+
+      <!-- 이미지 섹션 -->
+      <div class="record-image-section">
+        <div class="record-image-actions">
+          {% if log.image_path %}
+          <button type="button" class="button-secondary" style="font-size:0.8em; padding:4px 10px;"
+            onclick="toggleInlinePreview('{{ log.id }}')">
+            🖼 인라인 토글
+          </button>
+          <button type="button" class="button-secondary" style="font-size:0.8em; padding:4px 10px;"
+            onclick="openLightbox('{{ log.image_path }}')">
+            🔍 팝업 크게보기
+          </button>
+          <button type="button" class="button-secondary" style="font-size:0.8em; padding:4px 10px;"
+            onclick="resetViewer('{{ log.id }}')">
+            🔄 초기화
+          </button>
+          <span class="muted" style="font-size: 0.75em; margin-left: 4px;">🖱 휠로 확대/축소, 드래그로 이동</span>
+          {% endif %}
+          <form method="post" action="/eeg/{{ log.id }}/upload-image" enctype="multipart/form-data">
+            <input type="file" name="image" accept="image/*" required style="font-size:0.78em;" />
+            <button type="submit" class="button-secondary" style="font-size:0.78em; padding:4px 8px; white-space:nowrap;">
+              {% if log.image_path %}🔄 교체{% else %}📎 원본 업로드{% endif %}
+            </button>
+          </form>
+        </div>
+        {% if log.image_path %}
+        <div id="viewport-{{ log.id }}" class="preview-viewport">
+          <img src="{{ log.image_path }}" alt="뇌파 검사 결과지 원본" />
+        </div>
+        {% endif %}
       </div>
     </li>
     {% else %}

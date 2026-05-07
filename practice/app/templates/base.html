@@ -27,7 +27,7 @@
         <a href="/vision">시력</a>
         <a href="/vaccine">예방접종</a>
         <a href="/eeg">뇌파</a>
-        <a href="/eeg/guide">뇌파 가이드</a>
+        <a href="/checkup">종합검진</a>
         <a href="/report">리포트</a>
       </nav>
       <div class="chip">lab</div>
@@ -41,5 +41,127 @@
       <span>FastAPI · Jinja · Tortoise · SQLite</span>
       <span>Practice Edition</span>
     </footer>
+
+    <!-- Lightbox Modal -->
+    <div id="imageLightbox" class="lightbox">
+      <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+      <img class="lightbox-content" id="lightboxImg">
+      <div class="lightbox-controls">
+        <label>확대/축소</label>
+        <input type="range" id="zoomRange" min="0.5" max="3" step="0.1" value="1">
+        <button type="button" class="button-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="resetZoom()">초기화</button>
+      </div>
+    </div>
+
+    <script>
+      // ── Inline Pan & Zoom Viewer ──
+      const viewers = new Map(); // Track state for each image: { scale, x, y, isDragging, lastX, lastY }
+
+      function toggleInlinePreview(id) {
+        const viewport = document.getElementById(`viewport-${id}`);
+        if (!viewport) return;
+        
+        const isVisible = viewport.style.display === 'block';
+        viewport.style.display = isVisible ? 'none' : 'block';
+        
+        if (!isVisible && !viewers.has(id)) {
+          initViewer(id);
+        }
+      }
+
+      function initViewer(id) {
+        const viewport = document.getElementById(`viewport-${id}`);
+        const img = viewport.querySelector('img');
+        const state = { scale: 1, x: 0, y: 0, isDragging: false, lastX: 0, lastY: 0 };
+        viewers.set(id, state);
+
+        const updateTransform = () => {
+          img.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+        };
+
+        // Pan Logic
+        img.addEventListener('mousedown', (e) => {
+          state.isDragging = true;
+          state.lastX = e.clientX;
+          state.lastY = e.clientY;
+          e.preventDefault();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+          if (!state.isDragging) return;
+          const deltaX = e.clientX - state.lastX;
+          const deltaY = e.clientY - state.lastY;
+          state.x += deltaX;
+          state.y += deltaY;
+          state.lastX = e.clientX;
+          state.lastY = e.clientY;
+          updateTransform();
+        });
+
+        window.addEventListener('mouseup', () => {
+          state.isDragging = false;
+        });
+
+        // Zoom Logic (Wheel)
+        viewport.addEventListener('wheel', (e) => {
+          e.preventDefault();
+          const zoomSpeed = 0.1;
+          const delta = e.deltaY > 0 ? -zoomSpeed : zoomSpeed;
+          const newScale = Math.min(Math.max(0.5, state.scale + delta), 5);
+          
+          // Optional: Zoom towards mouse position (simplified here to center)
+          state.scale = newScale;
+          updateTransform();
+        }, { passive: false });
+      }
+
+      function resetViewer(id) {
+        if (viewers.has(id)) {
+          const state = viewers.get(id);
+          state.scale = 1;
+          state.x = 0;
+          state.y = 0;
+          const img = document.querySelector(`#viewport-${id} img`);
+          if (img) img.style.transform = "translate(0,0) scale(1)";
+        }
+      }
+
+      // ── Lightbox (Keep as fallback) ──
+      const lightbox = document.getElementById('imageLightbox');
+      const lightboxImg = document.getElementById('lightboxImg');
+      const zoomRange = document.getElementById('zoomRange');
+
+      function openLightbox(src) {
+        lightboxImg.src = src;
+        lightbox.style.display = "flex";
+        document.body.style.overflow = "hidden";
+        zoomRange.value = 1;
+        lightboxImg.style.transform = "scale(1)";
+      }
+
+      function closeLightbox() {
+        lightbox.style.display = "none";
+        document.body.style.overflow = "auto";
+      }
+
+      function resetZoom() {
+        zoomRange.value = 1;
+        lightboxImg.style.transform = "scale(1)";
+      }
+
+      zoomRange.addEventListener('input', (e) => {
+        lightboxImg.style.transform = `scale(${e.target.value})`;
+      });
+
+      // Close when clicking background
+      lightbox.addEventListener('click', (e) => {
+        if (e.target === lightbox) closeLightbox();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === "Escape") { closeLightbox(); }
+      });
+    </script>
   </body>
 </html>
+
