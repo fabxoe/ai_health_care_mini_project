@@ -11,3 +11,8 @@ class ExerciseLog(models.Model):
 
     def __str__(self) -> str:
         return f"{self.activity} - {self.duration_min}분 ({self.logged_at.date()})"
+
+    class Meta:
+        indexes = (
+            ("user_id", "logged_at"),
+        )

@@ -9,3 +9,8 @@ class WaterLog(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user_id} - {self.amount_ml}ml"
+
+    class Meta:
+        indexes = (
+            ("user_id", "logged_at"),
+        )

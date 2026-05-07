@@ -358,6 +358,30 @@ select {
   font-size: 14px;
 }
 
+input[type="file"] {
+  padding: 6px 10px;
+  color: #a7b0c5;
+}
+
+input[type="file"]::file-selector-button,
+input[type="file"]::-webkit-file-upload-button {
+  background: rgba(110, 123, 255, 0.2);
+  color: #d7dbff;
+  border: 1px solid rgba(110, 123, 255, 0.35);
+  border-radius: 8px;
+  padding: 6px 12px;
+  margin-right: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input[type="file"]::file-selector-button:hover,
+input[type="file"]::-webkit-file-upload-button:hover {
+  background: rgba(110, 123, 255, 0.3);
+}
+
 button {
   border: none;
   border-radius: 12px;

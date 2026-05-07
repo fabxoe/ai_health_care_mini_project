@@ -20,15 +20,15 @@
   <form class="form" method="post">
     <label>
       수면 날짜
-      <input type="date" name="sleep_date" required />
+      <input type="date" name="sleep_date" id="new_sleep_date" required />
     </label>
     <label>
       취침 시간
-      <input type="datetime-local" name="start_time" required />
+      <input type="text" class="datetime-picker" name="start_time" placeholder="날짜 및 시간 선택" required />
     </label>
     <label>
       기상 시간
-      <input type="datetime-local" name="end_time" required />
+      <input type="text" class="datetime-picker" name="end_time" placeholder="날짜 및 시간 선택" required />
     </label>
     <label>
       수면 품질(1~5)
@@ -53,8 +53,8 @@
       <div class="item-actions">
         <form class="inline-form" method="post" action="/sleep/{{ log.id }}/edit">
           <input class="input-compact" type="date" name="sleep_date" value="{{ log.sleep_date.strftime('%Y-%m-%d') }}" required />
-          <input class="input-compact" type="datetime-local" name="start_time" value="{{ log.start_time.strftime('%Y-%m-%dT%H:%M') }}" required />
-          <input class="input-compact" type="datetime-local" name="end_time" value="{{ log.end_time.strftime('%Y-%m-%dT%H:%M') }}" required />
+          <input class="input-compact datetime-picker" type="text" name="start_time" value="{{ log.start_time.strftime('%Y-%m-%dT%H:%M') }}" required />
+          <input class="input-compact datetime-picker" type="text" name="end_time" value="{{ log.end_time.strftime('%Y-%m-%dT%H:%M') }}" required />
           <input class="input-compact" type="number" name="quality" min="1" max="5" value="{{ log.quality or '' }}" />
           <button class="button-secondary" type="submit">수정</button>
         </form>
@@ -68,4 +68,28 @@
     {% endfor %}
   </ul>
 </section>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/ko.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // 수면 날짜 기본값
+    const dateInput = document.getElementById('new_sleep_date');
+    if (dateInput && !dateInput.value) {
+      dateInput.value = new Date().toISOString().split('T')[0];
+    }
+    
+    // 세련된 작은 달력 + 시간 선택기 (Flatpickr)
+    flatpickr(".datetime-picker", {
+      enableTime: true,
+      dateFormat: "Y-m-d\\TH:i",
+      time_24hr: true,
+      locale: "ko", // 한국어 달력
+      minuteIncrement: 10, // 10분 단위 선택
+      defaultDate: new Date() // 기본값으로 현재 시각 세팅
+    });
+  });
+</script>
 {% endblock %}

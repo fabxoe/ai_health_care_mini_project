@@ -12,3 +12,8 @@ class SleepLog(models.Model):
 
     def __str__(self) -> str:
         return f"{self.sleep_date} {self.start_time} - {self.end_time} (품질: {self.quality})"
+
+    class Meta:
+        indexes = (
+            ("user_id", "sleep_date"),
+        )

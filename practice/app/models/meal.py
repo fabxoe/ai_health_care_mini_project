@@ -11,3 +11,8 @@ class MealLog(models.Model):
 
     def __str__(self) -> str:
         return f"{self.meal_type} - {self.calories}kcal ({self.eaten_at.date()})"
+
+    class Meta:
+        indexes = (
+            ("user_id", "eaten_at"),
+        )
