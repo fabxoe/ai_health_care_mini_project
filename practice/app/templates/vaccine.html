@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% set body_class = "page-vaccine" %}
+{% block title %}예방접종 기록 | 건강관리{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>예방접종 내역</h1>
+    <p class="muted">백신 접종 증명서와 기록을 체계적으로 보관하세요.</p>
+  </div>
+  <form class="form" method="post" action="/vaccine" enctype="multipart/form-data">
+    <div style="display: flex; gap: 10px;">
+      <label style="flex: 1;">
+        접종일
+        <input type="text" class="datetime-picker-new" name="measured_at" placeholder="날짜 선택" required />
+      </label>
+      <label style="flex: 1;">
+        접종기관
+        <input type="text" name="hospital_name" placeholder="예: 아이사랑소아청소년과의원" />
+      </label>
+    </div>
+    
+    <div style="display: flex; gap: 10px; margin-top: 5px;">
+      <label style="flex: 2;">
+        백신명
+        <input type="text" name="vaccine_name" placeholder="예: 코로나19(모더나)" required />
+      </label>
+      <label style="flex: 1;">
+        접종차수
+        <input type="text" name="dose_number" placeholder="예: 1차" required />
+      </label>
+    </div>
+
+    <label style="margin-top: 10px;">
+      예방접종증명서 원본 사진 첨부
+      <input type="file" name="image" accept="image/*" />
+    </label>
+
+    <button type="submit">접종 기록 추가</button>
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-header">
+    <h2>기록 목록</h2>
+    <span class="chip">총 {{ logs|length }} 건</span>
+  </div>
+  <ul class="list">
+    {% for log in logs %}
+    <li class="list-row" style="flex-direction: column; align-items: stretch; gap: 10px;">
+      <div class="item-main" style="width: 100%; display: flex; justify-content: space-between; align-items: flex-start;">
+        <div style="flex: 1;">
+          <span>{{ log.measured_at.strftime("%Y-%m-%d") }}</span>
+          <strong>{{ log.vaccine_name }} ({{ log.dose_number }})</strong>
+          <span class="muted" style="font-size: 0.85em;">접종기관: {{ log.hospital_name or '미상' }}</span>
+          
+          {% if log.image_path %}
+          <div style="margin-top: 10px;">
+            <button type="button" class="button-secondary" style="font-size: 0.8em; padding: 4px 8px;" onclick="const img = document.getElementById('img-{{ log.id }}'); img.style.display = img.style.display==='none' ? 'block' : 'none';">🖼 증명서 원본 보기 토글</button>
+            <img id="img-{{ log.id }}" src="{{ log.image_path }}" style="display: none; max-width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid var(--border-color);" />
+          </div>
+          {% endif %}
+        </div>
+        <div class="item-actions" style="display: flex; gap: 5px;">
+          <form method="post" action="/vaccine/{{ log.id }}/delete" style="margin:0;">
+            <button class="button-danger" type="submit">삭제</button>
+          </form>
+        </div>
+      </div>
+    </li>
+    {% else %}
+    <li class="muted">아직 예방접종 기록이 없습니다.</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/ko.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    flatpickr(".datetime-picker-new", {
+      enableTime: false,
+      dateFormat: "Y-m-d\\T00:00:00",
+      locale: "ko",
+      defaultDate: new Date()
+    });
+  });
+</script>
+{% endblock %}

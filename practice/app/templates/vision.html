@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% set body_class = "page-vision" %}
+{% block title %}시력 검사 | 건강관리{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>안경 처방전 (시력 기록)</h1>
+    <p class="muted">안과 및 안경원에서 측정한 굴절검사 결과를 보관하세요.</p>
+  </div>
+  <form class="form" method="post" action="/vision" enctype="multipart/form-data">
+    <label>
+      검진일자
+      <input type="text" class="datetime-picker-new" name="measured_at" placeholder="날짜 선택" required />
+    </label>
+    <label>
+      검진기관 (안과/안경원)
+      <input type="text" name="hospital_name" placeholder="예: 정안과" />
+    </label>
+    
+    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+      <h3 style="margin-top:0; font-size: 0.9em; margin-bottom: 5px;">오른쪽 눈 (R)</h3>
+      <div style="display: flex; gap: 10px;">
+        <label style="flex: 1;"><span style="font-size:0.8em;">SPH (구면)</span>
+          <input type="number" step="0.25" name="sph_right" placeholder="예: -0.25" />
+        </label>
+        <label style="flex: 1;"><span style="font-size:0.8em;">CYL (원주/난시)</span>
+          <input type="number" step="0.25" name="cyl_right" placeholder="예: -0.25" />
+        </label>
+        <label style="flex: 1;"><span style="font-size:0.8em;">AX (축)</span>
+          <input type="number" name="axis_right" placeholder="예: 180" />
+        </label>
+      </div>
+    </div>
+
+    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-top: 10px;">
+      <h3 style="margin-top:0; font-size: 0.9em; margin-bottom: 5px;">왼쪽 눈 (L)</h3>
+      <div style="display: flex; gap: 10px;">
+        <label style="flex: 1;"><span style="font-size:0.8em;">SPH (구면)</span>
+          <input type="number" step="0.25" name="sph_left" placeholder="예: -0.25" />
+        </label>
+        <label style="flex: 1;"><span style="font-size:0.8em;">CYL (원주/난시)</span>
+          <input type="number" step="0.25" name="cyl_left" placeholder="예: -0.25" />
+        </label>
+        <label style="flex: 1;"><span style="font-size:0.8em;">AX (축)</span>
+          <input type="number" name="axis_left" placeholder="예: 180" />
+        </label>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-top: 10px;">
+      <label style="flex: 1;">
+        동공간 거리 (P.D)
+        <input type="number" step="0.1" name="pd" placeholder="예: 62" />
+      </label>
+    </div>
+
+    <label style="margin-top: 10px;">
+      원본 처방전 이미지 첨부
+      <input type="file" name="image" accept="image/*" />
+    </label>
+
+    <button type="submit">기록 추가</button>
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-header">
+    <h2>검사 기록 목록</h2>
+    <span class="chip">총 {{ logs|length }} 건</span>
+  </div>
+  <ul class="list">
+    {% for log in logs %}
+    <li class="list-row" style="flex-direction: column; align-items: stretch; gap: 10px;">
+      <div class="item-main" style="width: 100%; display: flex; justify-content: space-between; align-items: flex-start;">
+        <div style="flex: 1;">
+          <span>{{ log.measured_at.strftime("%Y-%m-%d") }} @ {{ log.hospital_name or '미상' }}</span>
+          <strong>R: [{{ log.sph_right }}, {{ log.cyl_right }}, {{ log.axis_right }}] | L: [{{ log.sph_left }}, {{ log.cyl_left }}, {{ log.axis_left }}]</strong>
+          <span class="muted" style="font-size: 0.85em;">P.D: {{ log.pd }}</span>
+          
+          {% if log.image_path %}
+          <div style="margin-top: 10px;">
+            <button type="button" class="button-secondary" style="font-size: 0.8em; padding: 4px 8px;" onclick="const img = document.getElementById('img-{{ log.id }}'); img.style.display = img.style.display==='none' ? 'block' : 'none';">🖼 원본 보기 토글</button>
+            <img id="img-{{ log.id }}" src="{{ log.image_path }}" style="display: none; max-width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid var(--border-color);" />
+          </div>
+          {% endif %}
+        </div>
+        <div class="item-actions" style="display: flex; gap: 5px;">
+          <form method="post" action="/vision/{{ log.id }}/delete" style="margin:0;">
+            <button class="button-danger" type="submit">삭제</button>
+          </form>
+        </div>
+      </div>
+    </li>
+    {% else %}
+    <li class="muted">아직 기록이 없습니다.</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/ko.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    flatpickr(".datetime-picker-new", {
+      enableTime: false,
+      dateFormat: "Y-m-d\\T00:00:00",
+      locale: "ko",
+      defaultDate: new Date()
+    });
+  });
+</script>
+{% endblock %}
