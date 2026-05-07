@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% set body_class = "page-eeg-guide" %}
+{% block title %}뇌파 분석 가이드 | 건강관리{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>💡 뇌파(qEEG) 분석 가이드</h1>
+    <p class="muted">전문 AI가 분석한 뇌파 데이터 해석 가이드입니다.</p>
+  </div>
+</section>
+
+<div class="grid">
+  <section class="card" style="grid-column: 1 / -1;">
+    <div class="card-header">
+      <h2>집중력 및 뇌 각성도 분석</h2>
+    </div>
+    <div style="line-height: 1.8; color: #e6e8ee; font-size: 1.05rem;">
+      <p>검사 결과(Z Scored FFT Summary Information)를 바탕으로 한 심층 분석 내용입니다.</p>
+      
+      <div style="background: rgba(110, 123, 255, 0.08); padding: 24px; border-radius: 12px; border: 1px solid rgba(110, 123, 255, 0.2); margin-top: 20px;">
+        <h3 style="color: #6e7bff; margin-top: 0;">📊 데이터 관찰 결과</h3>
+        <p>대부분의 서파(Delta, Theta) 및 알파파(Alpha)는 정상 범위(초록색)를 유지하고 있습니다.</p>
+        <p>하지만 <strong>Beta(베타파) 및 High Beta(고베타파)</strong> 대역의 상대 전력 및 절대 전력 항목에서 <strong>붉은색/노란색 영역</strong>이 뚜렷하게 관찰됩니다. 이는 특정 영역에서 고주파 뇌파가 표준 범위를 벗어나 과도하게 발생하고 있음을 의미합니다.</p>
+        
+        <h3 style="color: #6e7bff; margin-top: 24px;">🎯 분석 의미: '뇌 과각성'</h3>
+        <p>베타파와 고베타파는 뇌가 각성되어 있거나, 무언가에 집중하거나, 혹은 불안/스트레스를 느낄 때 활성화되는 파형입니다.</p>
+        <p>이 파장이 상시적으로 과활성화되어 있다면 뇌가 휴식을 취하지 못하고 항상 긴장되어 있는 <strong>'과각성(Hyperarousal)'</strong> 상태일 가능성이 높습니다. 엔진이 과열된 상태로 계속 돌아가고 있는 것과 비슷합니다.</p>
+
+        <h3 style="color: #6e7bff; margin-top: 24px;">🧠 증상과의 연관성</h3>
+        <p>뇌가 과각성 상태에 빠지면 주변의 수많은 정보에 민감하게 반응하게 되며, 결과적으로 <strong>특정 작업 하나에 온전히 몰입하는 '선택적 집중력'이 저하</strong>될 수 있습니다.</p>
+        <p>과거에 느끼셨던 집중력 저하 현상은 이러한 뇌파의 불균형(과도한 베타파)으로 인해 뇌가 쉽게 피로해지고 에너지를 효율적으로 쓰지 못했기 때문으로 분석됩니다.</p>
+      </div>
+
+      <div style="margin-top: 30px; text-align: center;">
+        <a href="/eeg" class="button" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #6e7bff, #57f2c3); color: #0a0e13; border-radius: 12px; font-weight: 600; text-decoration: none;">내 뇌파 기록 보기</a>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

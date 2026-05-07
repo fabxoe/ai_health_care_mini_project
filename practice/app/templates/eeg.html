@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% set body_class = "page-eeg" %}
+{% block title %}뇌파(qEEG) 기록 | 건강관리{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>정량화 뇌파(qEEG) 검사</h1>
+    <p class="muted">뇌파 측정 결과와 두뇌 스트레스/집중도 지표를 보관하세요.</p>
+  </div>
+  <form class="form" method="post" action="/eeg" enctype="multipart/form-data">
+    <div style="display: flex; gap: 10px;">
+      <label style="flex: 1;">
+        검사 일시
+        <input type="text" class="datetime-picker-new" name="measured_at" placeholder="날짜 및 시간 선택" required />
+      </label>
+      <label style="flex: 1;">
+        검사 조건 (Eyes Open/Closed)
+        <input type="text" name="eyes_condition" placeholder="예: Eyes Open" />
+      </label>
+    </div>
+    
+    <div style="display: flex; gap: 10px; margin-top: 5px;">
+      <label style="flex: 1;">
+        담당의 / 임상가
+        <input type="text" name="clinician" placeholder="예: 성승환" />
+      </label>
+      <label style="flex: 2;">
+        특이사항 (전극 위치 등)
+        <input type="text" name="comments" placeholder="예: FP1,FP2,T6,PZ" />
+      </label>
+    </div>
+
+    <label style="margin-top: 5px;">
+      종합 소견 / 분석 요약
+      <input type="text" name="summary" placeholder="예: Beta 대역 과활성화, 스트레스/집중력 저하 연관" />
+    </label>
+
+    <label style="margin-top: 10px;">
+      뇌파 결과지 원본 사진 첨부 (Z-Score Topomap 등)
+      <input type="file" name="image" accept="image/*" />
+    </label>
+
+    <button type="submit">검사 기록 추가</button>
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-header">
+    <h2>뇌파 검사 기록</h2>
+    <span class="chip">총 {{ logs|length }} 건</span>
+  </div>
+  <ul class="list">
+    {% for log in logs %}
+    <li class="list-row" style="flex-direction: column; align-items: stretch; gap: 10px;">
+      <div class="item-main" style="width: 100%; display: flex; justify-content: space-between; align-items: flex-start;">
+        <div style="flex: 1;">
+          <span>{{ log.measured_at.strftime("%Y-%m-%d %H:%M:%S") }}</span>
+          <strong>조건: {{ log.eyes_condition or '미상' }} | 담당의: {{ log.clinician or '미상' }}</strong>
+          <div class="muted" style="font-size: 0.85em; margin-top: 4px;">
+            <div>특이사항: {{ log.comments or '-' }}</div>
+            <div>소견요약: {{ log.summary or '-' }}</div>
+          </div>
+          
+          {% if log.ai_interpretation %}
+          <div style="margin-top: 10px; padding: 12px; background: rgba(110, 123, 255, 0.1); border-left: 3px solid #6e7bff; border-radius: 4px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="const ai = document.getElementById('ai-{{ log.id }}'); ai.style.display = ai.style.display==='none' ? 'block' : 'none';">
+              <strong style="color: #c9d1ff; font-size: 0.9em;">💡 AI 심층 분석 소견</strong>
+              <span style="font-size: 0.8em; color: #8c95a8;">자세히 보기 ▼</span>
+            </div>
+            <div id="ai-{{ log.id }}" style="display: none; margin-top: 10px; font-size: 0.85em; line-height: 1.6; white-space: pre-wrap; color: #e9ecff;">{{ log.ai_interpretation }}</div>
+          </div>
+          {% endif %}
+          
+          {% if log.image_path %}
+          <div style="margin-top: 10px;">
+            <button type="button" class="button-secondary" style="font-size: 0.8em; padding: 4px 8px;" onclick="const img = document.getElementById('img-{{ log.id }}'); img.style.display = img.style.display==='none' ? 'block' : 'none';">🖼 결과지 원본 보기 토글</button>
+            <img id="img-{{ log.id }}" src="{{ log.image_path }}" style="display: none; max-width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid var(--border-color);" />
+          </div>
+          {% endif %}
+        </div>
+        <div class="item-actions" style="display: flex; gap: 5px;">
+          <form method="post" action="/eeg/{{ log.id }}/delete" style="margin:0;">
+            <button class="button-danger" type="submit">삭제</button>
+          </form>
+        </div>
+      </div>
+    </li>
+    {% else %}
+    <li class="muted">아직 등록된 뇌파(qEEG) 기록이 없습니다.</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/ko.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    flatpickr(".datetime-picker-new", {
+      enableTime: true,
+      enableSeconds: true,
+      dateFormat: "Y-m-d\\TH:i:S",
+      locale: "ko",
+      defaultDate: new Date()
+    });
+  });
+</script>
+{% endblock %}
