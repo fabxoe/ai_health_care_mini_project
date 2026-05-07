@@ -15,6 +15,9 @@ async def init_db() -> None:
             "models": [
                 "app.models.user",
                 "app.models.water",
+                "app.models.exercise",
+                "app.models.sleep",
+                "app.models.meal",
                 # TODO: Exercise/Sleep/Meal 모델을 추가하세요.
             ]
         },

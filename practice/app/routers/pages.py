@@ -12,21 +12,24 @@ import matplotlib.pyplot as plt
 import koreanize_matplotlib
 
 
+from app.models.exercise import ExerciseLog #
+from app.models.meal import MealLog #
+from app.models.sleep import SleepLog #
 from app.models.water import WaterLog
-from app.services.mock_data import (
-    add_exercise,
-    add_meal,
-    add_sleep,
-    delete_exercise,
-    delete_meal,
-    delete_sleep,
-    list_exercise,
-    list_meal,
-    list_sleep,
-    update_exercise,
-    update_meal,
-    update_sleep,
-)
+# from app.services.mock_data import (
+#     add_exercise,
+#     add_meal,
+#     add_sleep,
+#     delete_exercise,
+#     delete_meal,
+#     delete_sleep,
+#     list_exercise,
+#     list_meal,
+#     list_sleep,
+#     update_exercise,
+#     update_meal,
+#     update_sleep,
+# )
 from app.services.users import get_or_create_default_user
 
 router = APIRouter()
@@ -62,16 +65,26 @@ def build_water_report(logs: list[WaterLog], output_path: Path) -> None:
 async def dashboard(request: Request):
     user = await get_or_create_default_user()
     water_logs = await WaterLog.filter(user=user).order_by("-logged_at").limit(5)
+    exercise_logs = await ExerciseLog.filter(user=user).order_by("-logged_at").limit(5)
+    meal_logs = await MealLog.filter(user=user).order_by("-eaten_at").limit(5)
+    sleep_logs = await SleepLog.filter(user=user).order_by("-sleep_date").limit(5)   
+
+    total_water = sum([log.amount_ml for log in await WaterLog.filter(user=user)])
+    total_exercise = sum([log.duration_min for log in await ExerciseLog.filter(user=user)])
 
     return templates.TemplateResponse(
         request,
         "dashboard.html",
         {
             "user": user,
-            "water_logs": water_logs,
-            "exercise_logs": list_exercise()[:5],
-            "sleep_logs": list_sleep()[:5],
-            "meal_logs": list_meal()[:5],
+            "water_logs": water_logs,   
+            "exercise_logs": exercise_logs,
+            "sleep_logs": sleep_logs,
+            "meal_logs": meal_logs,
+            "total_water": total_water,
+            "total_exercise": total_exercise,
+            # "total_sleep": total_sleep,
+            # "total_meal": total_meal,  
         },
     )
 
@@ -117,8 +130,9 @@ async def delete_water(log_id: int):
 @router.get("/exercise")
 async def exercise_page(request: Request):
     user = await get_or_create_default_user()
+    logs = await ExerciseLog.filter(user=user).order_by("-logged_at")
     return templates.TemplateResponse(
-        request, "exercise.html", {"user": user, "logs": list_exercise()}
+        request, "exercise.html", {"user": user, "logs": logs}
     )
 
 
@@ -128,8 +142,10 @@ async def add_exercise_log(
     duration_min: int = Form(...),
     calories_burned: int | None = Form(None),
 ):
-    # TODO: ORM 모델과 테이블로 교체하세요.
-    add_exercise(activity, duration_min, calories_burned)
+    user = await get_or_create_default_user()
+    await ExerciseLog.create(
+        user=user, activity=activity, duration_min=duration_min, calories_burned=calories_burned
+    )
     return RedirectResponse(url="/exercise", status_code=303)
 
 
@@ -141,37 +157,45 @@ async def edit_exercise_log(
     calories_burned: int | None = Form(None),
     logged_at: str = Form(...),
 ):
-    # TODO: ORM 모델과 테이블로 교체하세요.
-    update_exercise(
-        log_id, activity, duration_min, calories_burned, datetime.fromisoformat(logged_at)
-    )
+    user = await get_or_create_default_user()
+    log = await ExerciseLog.get_or_none(id=log_id, user=user)
+    if log:
+        log.activity = activity
+        log.duration_min = duration_min
+        log.calories_burned = calories_burned
+        log.logged_at = datetime.fromisoformat(logged_at)
+        await log.save(update_fields=["activity", "duration_min", "calories_burned", "logged_at"])
     return RedirectResponse(url="/exercise", status_code=303)
 
 
 @router.post("/exercise/{log_id}/delete")
 async def delete_exercise_log(log_id: int):
-    # TODO: ORM 모델과 테이블로 교체하세요.
-    delete_exercise(log_id)
+    user = await get_or_create_default_user()
+    log = await ExerciseLog.get_or_none(id=log_id, user=user)
+    if log:
+        await log.delete()
     return RedirectResponse(url="/exercise", status_code=303)
 
 
 @router.get("/sleep")
 async def sleep_page(request: Request):
     user = await get_or_create_default_user()
+    logs = await SleepLog.filter(user=user).order_by("-sleep_date")
     return templates.TemplateResponse(
-        request, "sleep.html", {"user": user, "logs": list_sleep()}
+        request, "sleep.html", {"user": user, "logs": logs}
     )
 
 
 @router.post("/sleep")
-async def add_sleep_log(
+async def add_sleep(
     sleep_date: str = Form(...),
     start_time: str = Form(...),
     end_time: str = Form(...),
     quality: int | None = Form(None),
 ):
-    # TODO: ORM 모델과 테이블로 교체하세요.
-    add_sleep(
+    user = await get_or_create_default_user()
+    await SleepLog.create(
+        user=user,
         sleep_date=date.fromisoformat(sleep_date),
         start_time=datetime.fromisoformat(start_time),
         end_time=datetime.fromisoformat(end_time),
@@ -188,40 +212,43 @@ async def edit_sleep_log(
     end_time: str = Form(...),
     quality: int | None = Form(None),
 ):
-    # TODO: ORM 모델과 테이블로 교체하세요.
-    update_sleep(
-        log_id=log_id,
-        sleep_date=date.fromisoformat(sleep_date),
-        start_time=datetime.fromisoformat(start_time),
-        end_time=datetime.fromisoformat(end_time),
-        quality=quality,
-    )
+    user = await get_or_create_default_user()
+    log = await SleepLog.get_or_none(id=log_id, user=user)
+    if log:
+        log.sleep_date = date.fromisoformat(sleep_date)
+        log.start_time = datetime.fromisoformat(start_time)
+        log.end_time = datetime.fromisoformat(end_time)
+        log.quality = quality
+        await log.save(update_fields=["sleep_date", "start_time", "end_time", "quality"])
     return RedirectResponse(url="/sleep", status_code=303)
 
 
 @router.post("/sleep/{log_id}/delete")
 async def delete_sleep_log(log_id: int):
-    # TODO: ORM 모델과 테이블로 교체하세요.
-    delete_sleep(log_id)
+    user = await get_or_create_default_user()
+    log = await SleepLog.get_or_none(id=log_id, user=user)
+    if log:
+        await log.delete()
     return RedirectResponse(url="/sleep", status_code=303)
 
 
 @router.get("/meal")
 async def meal_page(request: Request):
     user = await get_or_create_default_user()
+    logs = await MealLog.filter(user=user).order_by("-eaten_at")
     return templates.TemplateResponse(
-        request, "meal.html", {"user": user, "logs": list_meal()}
+        request, "meal.html", {"user": user, "logs": logs}
     )
 
 
 @router.post("/meal")
-async def add_meal_log(
+async def add_meal(
     meal_type: str = Form(...),
     calories: int | None = Form(None),
     note: str | None = Form(None),
 ):
-    # TODO: ORM 모델과 테이블로 교체하세요.
-    add_meal(meal_type, calories, note)
+    user = await get_or_create_default_user()
+    await MealLog.create(user=user, meal_type=meal_type, calories=calories, note=note)
     return RedirectResponse(url="/meal", status_code=303)
 
 
@@ -233,15 +260,23 @@ async def edit_meal_log(
     note: str | None = Form(None),
     eaten_at: str = Form(...),
 ):
-    # TODO: ORM 모델과 테이블로 교체하세요.
-    update_meal(log_id, meal_type, calories, note, datetime.fromisoformat(eaten_at))
+    user = await get_or_create_default_user()
+    log = await MealLog.get_or_none(id=log_id, user=user)
+    if log:
+        log.meal_type = meal_type
+        log.calories = calories
+        log.note = note
+        log.eaten_at = datetime.fromisoformat(eaten_at)
+        await log.save(update_fields=["meal_type", "calories", "note", "eaten_at"])
     return RedirectResponse(url="/meal", status_code=303)
 
 
 @router.post("/meal/{log_id}/delete")
-async def delete_meal_log(log_id: int):
-    # TODO: ORM 모델과 테이블로 교체하세요.
-    delete_meal(log_id)
+async def delete_meal(log_id: int):
+    user = await get_or_create_default_user()
+    log = await MealLog.get_or_none(id=log_id, user=user)
+    if log:
+        await log.delete()
     return RedirectResponse(url="/meal", status_code=303)
 
 

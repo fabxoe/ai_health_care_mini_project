@@ -9,6 +9,10 @@ class User(models.Model):
     created_at = fields.DatetimeField(auto_now_add=True)
 
     water_logs: fields.ReverseRelation["WaterLog"]
+    exercise_logs: fields.ReverseRelation["ExerciseLog"]
+    sleep_logs: fields.ReverseRelation["SleepLog"]
+    meal_logs: fields.ReverseRelation["MealLog"]
+
 
     def __str__(self) -> str:
         return f"{self.name}({self.id})"
