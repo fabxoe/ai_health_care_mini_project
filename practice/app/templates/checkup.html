@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}종합 건강검진 기록 - 개인 건강관리{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>종합 건강검진 기록</h1>
+    <p class="muted">혈액검사, 소변검사 등 종합검진 결과지를 통합 관리합니다.</p>
+  </div>
+  <div class="illustration">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#57f2c3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+      <polyline points="14 2 14 8 20 8"></polyline>
+      <line x1="16" y1="13" x2="8" y2="13"></line>
+      <line x1="16" y1="17" x2="8" y2="17"></line>
+      <polyline points="10 9 9 9 8 9"></polyline>
+    </svg>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom: 30px;">
+  <form method="post" enctype="multipart/form-data" class="form" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+    <div style="grid-column: 1 / -1; margin-bottom: 10px;">
+      <h3 style="margin: 0; font-size: 1.1em; color: var(--text-color);">📋 새 검진 기록 등록</h3>
+    </div>
+    
+    <label>검사 일자
+      <input type="date" name="measured_at" required value="{{ now_date }}">
+    </label>
+    <label>검진 기관
+      <input type="text" name="hospital_name" placeholder="병원명">
+    </label>
+    <label>판정 결과
+      <select name="judgment">
+        <option value="정상A">정상A</option>
+        <option value="정상B(경계)">정상B(경계)</option>
+        <option value="질환의심">질환의심</option>
+        <option value="유질환자">유질환자</option>
+      </select>
+    </label>
+
+    <div style="grid-column: 1 / -1; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05);">
+      <strong style="font-size:0.9em; color:#9da7ff;">⚖️ 계측 및 혈압</strong>
+    </div>
+    <label>체중 (kg)
+      <input type="number" step="0.1" name="weight">
+    </label>
+    <label>BMI
+      <input type="number" step="0.1" name="bmi">
+    </label>
+    <label>허리둘레 (cm)
+      <input type="number" step="0.1" name="waist">
+    </label>
+    <label>혈압 (수축/이완)
+      <div style="display:flex; gap:5px; align-items:center;">
+        <input type="number" name="bp_systolic" placeholder="수축" style="flex:1; min-width:0;">
+        <span class="muted">/</span>
+        <input type="number" name="bp_diastolic" placeholder="이완" style="flex:1; min-width:0;">
+      </div>
+    </label>
+
+    <div style="grid-column: 1 / -1; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05);">
+      <strong style="font-size:0.9em; color:#9da7ff;">🩸 혈액 검사 주요 지표</strong>
+    </div>
+    <label>공복혈당 (mg/dL)
+      <input type="number" name="blood_glucose">
+    </label>
+    <label>혈색소 (g/dL)
+      <input type="number" step="0.1" name="hemoglobin">
+    </label>
+    <label>총콜레스테롤 (mg/dL)
+      <input type="number" name="total_cholesterol">
+    </label>
+    <label>HDL / LDL (콜레스테롤)
+      <div style="display:flex; gap:5px; align-items:center; width: 100%;">
+        <input type="number" name="hdl_cholesterol" placeholder="HDL" style="flex:1; min-width:0;">
+        <input type="number" name="ldl_cholesterol" placeholder="LDL" style="flex:1; min-width:0;">
+      </div>
+    </label>
+    <label>중성지방 (Triglyceride)
+      <input type="number" name="triglycerides">
+    </label>
+    <label>AST / ALT (간기능)
+      <div style="display:flex; gap:5px; align-items:center; width: 100%;">
+        <input type="number" name="ast" placeholder="AST" style="flex:1; min-width:0;">
+        <input type="number" name="alt" placeholder="ALT" style="flex:1; min-width:0;">
+      </div>
+    </label>
+    <label>감마GTP / 크레아티닌 / e-GFR
+      <div style="display:flex; gap:5px; align-items:center; width: 100%;">
+        <input type="number" name="y_gtp" placeholder="y-GTP" style="flex:1; min-width:0;">
+        <input type="number" step="0.01" name="creatinine" placeholder="Cr" style="flex:1; min-width:0;">
+        <input type="number" name="e_gfr" placeholder="e-GFR" style="flex:1; min-width:0;">
+      </div>
+    </label>
+
+    <div style="grid-column: 1 / -1; margin-top: 15px;">
+      <label>종합 소견
+        <textarea name="summary" style="width:100%; height:80px; background:#0f141b; border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:inherit; padding:10px;"></textarea>
+      </label>
+    </div>
+
+    <div style="grid-column: 1 / -1; margin-top: 15px;">
+      <label>검진 결과지 사진 (여러 장 선택 가능)
+        <input type="file" name="images" accept="image/*" multiple>
+      </label>
+    </div>
+    
+    <div style="grid-column: 1 / -1; margin-top: 10px;">
+      <button type="submit" style="width: 100%;">기록 저장하기</button>
+    </div>
+  </form>
+</div>
+
+<div class="hero">
+  <h2>과거 검진 내역</h2>
+  <span class="chip">총 {{ logs|length }} 건</span>
+</div>
+
+<ul class="list">
+  {% for log in logs %}
+  <li class="list-row" style="flex-direction: column; align-items: stretch; gap: 0;">
+    <div class="record-info-row">
+      <div class="info">
+        <span class="muted" style="font-size:0.82em;">{{ log.measured_at.strftime("%Y-%m-%d") }} &nbsp;@&nbsp; {{ log.hospital_name or '미상' }}</span>
+        <strong>결과 판정: <span style="color:{% if '정상' in log.judgment %}#57f2c3{% else %}#ff6363{% endif %};">{{ log.judgment or '미상' }}</span></strong>
+        <div class="muted" style="font-size:0.82em; margin-top:4px; display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:4px;">
+          <span>당뇨: {{ log.blood_glucose or '-' }} mg/dL</span>
+          <span>간(ALT): {{ log.alt or '-' }} U/L</span>
+          <span>콜레스테롤(T/H/L): {{ log.total_cholesterol or '-' }}/{{ log.hdl_cholesterol or '-' }}/{{ log.ldl_cholesterol or '-' }}</span>
+          <span>중성지방: {{ log.triglycerides or '-' }}</span>
+          <span>신장(Cr/e-GFR): {{ log.creatinine or '-' }}/{{ log.e_gfr or '-' }}</span>
+          <span>혈압: {{ log.bp_systolic or '-' }}/{{ log.bp_diastolic or '-' }}</span>
+        </div>
+        {% if log.summary %}
+        <div style="font-size:0.85em; margin-top:8px; padding:8px; background:rgba(255,255,255,0.03); border-radius:6px; line-height:1.4;">
+          {{ log.summary }}
+        </div>
+        {% endif %}
+      </div>
+      <div style="flex-shrink:0;">
+        <form method="post" action="/checkup/{{ log.id }}/delete" style="margin:0;">
+          <button class="button-danger" type="submit">삭제</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="record-image-section">
+      <div class="record-image-actions">
+        {% if log.images %}
+        <span class="muted" style="font-size: 0.8em; margin-right: 8px;">📷 첨부 이미지 {{ log.images|length }}장</span>
+        {% endif %}
+        <form method="post" action="/checkup/{{ log.id }}/upload-image" enctype="multipart/form-data" style="display:flex; gap:8px; align-items:center;">
+          <input type="file" name="images" accept="image/*" multiple required style="font-size:0.78em;" />
+          <button type="submit" class="button-secondary" style="font-size:0.78em; padding:4px 8px; white-space:nowrap;">
+            📎 사진 추가
+          </button>
+        </form>
+      </div>
+      
+      <div style="display: flex; flex-direction: column; gap: 15px;">
+        {% for img in log.images %}
+        <div class="image-container-with-controls">
+           <div style="margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center;">
+              <span class="muted" style="font-size: 0.75em;">페이지 {{ loop.index }}</span>
+              <div style="display: flex; gap: 5px;">
+                <button type="button" class="button-secondary" style="font-size:0.75em; padding:2px 8px;"
+                  onclick="toggleInlinePreview('{{ img.id }}')">🖼 인라인 토글</button>
+                <button type="button" class="button-secondary" style="font-size:0.75em; padding:2px 8px;"
+                  onclick="openLightbox('{{ img.image_path }}')">🔍 팝업 크게보기</button>
+                <button type="button" class="button-secondary" style="font-size:0.75em; padding:2px 8px;"
+                  onclick="resetViewer('{{ img.id }}')">🔄 초기화</button>
+              </div>
+           </div>
+           <div id="viewport-{{ img.id }}" class="preview-viewport" style="display: none;">
+             <img src="{{ img.image_path }}" alt="결과지 페이지 {{ loop.index }}" />
+           </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </li>
+  {% else %}
+  <li class="muted">아직 등록된 종합검진 기록이 없습니다.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

@@ -24,6 +24,7 @@ async def init_db() -> None:
                 "app.models.vision",
                 "app.models.vaccine",
                 "app.models.eeg",
+                "app.models.checkup",
             ]
         },
         _enable_global_fallback=True,

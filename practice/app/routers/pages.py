@@ -20,6 +20,7 @@ from app.models.cardio import CardioLog
 from app.models.vision import VisionLog
 from app.models.vaccine import VaccineLog
 from app.models.eeg import EEGLog
+from app.models.checkup import CheckupLog, CheckupImage
 from app.services.users import get_or_create_default_user
 
 router = APIRouter()
@@ -399,6 +400,17 @@ async def delete_blood_pressure(log_id: int):
     return RedirectResponse(url="/blood-pressure", status_code=303)
 
 
+@router.post("/blood-pressure/{log_id}/upload-image")
+async def upload_blood_pressure_image(log_id: int, image: UploadFile = File(...)):
+    user = await get_or_create_default_user()
+    log = await BloodPressureLog.get_or_none(id=log_id, user=user)
+    if log:
+        delete_upload_file(log.image_path)
+        log.image_path = await save_upload_file(image)
+        await log.save()
+    return RedirectResponse(url="/blood-pressure", status_code=303)
+
+
 @router.get("/inbody")
 async def inbody_page(request: Request):
     user = await get_or_create_default_user()
@@ -449,6 +461,17 @@ async def delete_inbody(log_id: int):
     if log:
         delete_upload_file(log.image_path)
         await log.delete()
+    return RedirectResponse(url="/inbody", status_code=303)
+
+
+@router.post("/inbody/{log_id}/upload-image")
+async def upload_inbody_image(log_id: int, image: UploadFile = File(...)):
+    user = await get_or_create_default_user()
+    log = await InBodyLog.get_or_none(id=log_id, user=user)
+    if log:
+        delete_upload_file(log.image_path)
+        log.image_path = await save_upload_file(image)
+        await log.save()
     return RedirectResponse(url="/inbody", status_code=303)
 
 
@@ -562,6 +585,17 @@ async def delete_cardio(log_id: int):
     return RedirectResponse(url="/cardio", status_code=303)
 
 
+@router.post("/cardio/{log_id}/upload-image")
+async def upload_cardio_image(log_id: int, image: UploadFile = File(...)):
+    user = await get_or_create_default_user()
+    log = await CardioLog.get_or_none(id=log_id, user=user)
+    if log:
+        delete_upload_file(log.image_path)
+        log.image_path = await save_upload_file(image)
+        await log.save()
+    return RedirectResponse(url="/cardio", status_code=303)
+
+
 @router.get("/vision")
 async def vision_page(request: Request):
     user = await get_or_create_default_user()
@@ -613,6 +647,17 @@ async def delete_vision(log_id: int):
     return RedirectResponse(url="/vision", status_code=303)
 
 
+@router.post("/vision/{log_id}/upload-image")
+async def upload_vision_image(log_id: int, image: UploadFile = File(...)):
+    user = await get_or_create_default_user()
+    log = await VisionLog.get_or_none(id=log_id, user=user)
+    if log:
+        delete_upload_file(log.image_path)
+        log.image_path = await save_upload_file(image)
+        await log.save()
+    return RedirectResponse(url="/vision", status_code=303)
+
+
 @router.get("/vaccine")
 async def vaccine_page(request: Request):
     user = await get_or_create_default_user()
@@ -651,6 +696,17 @@ async def delete_vaccine(log_id: int):
     if log:
         delete_upload_file(log.image_path)
         await log.delete()
+    return RedirectResponse(url="/vaccine", status_code=303)
+
+
+@router.post("/vaccine/{log_id}/upload-image")
+async def upload_vaccine_image(log_id: int, image: UploadFile = File(...)):
+    user = await get_or_create_default_user()
+    log = await VaccineLog.get_or_none(id=log_id, user=user)
+    if log:
+        delete_upload_file(log.image_path)
+        log.image_path = await save_upload_file(image)
+        await log.save()
     return RedirectResponse(url="/vaccine", status_code=303)
 
 
@@ -699,9 +755,111 @@ async def delete_eeg(log_id: int):
     return RedirectResponse(url="/eeg", status_code=303)
 
 
-@router.get("/eeg/guide")
-async def eeg_guide_page(request: Request):
-    return templates.TemplateResponse(request, "eeg_guide.html", {})
+@router.post("/eeg/{log_id}/upload-image")
+async def upload_eeg_image(log_id: int, image: UploadFile = File(...)):
+    user = await get_or_create_default_user()
+    log = await EEGLog.get_or_none(id=log_id, user=user)
+    if log:
+        delete_upload_file(log.image_path)
+        log.image_path = await save_upload_file(image)
+        await log.save()
+    return RedirectResponse(url="/eeg", status_code=303)
+
+
+@router.get("/checkup")
+async def checkup_page(request: Request):
+    user = await get_or_create_default_user()
+    logs = await CheckupLog.filter(user=user).prefetch_related("images").order_by("-measured_at")
+    return templates.TemplateResponse(
+        request, "checkup.html", {
+            "user": user, 
+            "logs": logs,
+            "now_date": date.today().isoformat()
+        }
+    )
+
+
+@router.post("/checkup")
+async def add_checkup(
+    measured_at: str = Form(...),
+    hospital_name: str | None = Form(None),
+    weight: float | None = Form(None),
+    bmi: float | None = Form(None),
+    waist: float | None = Form(None),
+    bp_systolic: int | None = Form(None),
+    bp_diastolic: int | None = Form(None),
+    blood_glucose: int | None = Form(None),
+    hemoglobin: float | None = Form(None),
+    total_cholesterol: int | None = Form(None),
+    hdl_cholesterol: int | None = Form(None),
+    triglycerides: int | None = Form(None),
+    ldl_cholesterol: int | None = Form(None),
+    ast: int | None = Form(None),
+    alt: int | None = Form(None),
+    y_gtp: int | None = Form(None),
+    creatinine: float | None = Form(None),
+    e_gfr: int | None = Form(None),
+    summary: str | None = Form(None),
+    judgment: str | None = Form(None),
+    images: list[UploadFile] | None = File(None),
+):
+    user = await get_or_create_default_user()
+    
+    log = await CheckupLog.create(
+        user=user,
+        measured_at=date.fromisoformat(measured_at),
+        hospital_name=hospital_name,
+        weight=weight,
+        bmi=bmi,
+        waist=waist,
+        bp_systolic=bp_systolic,
+        bp_diastolic=bp_diastolic,
+        blood_glucose=blood_glucose,
+        hemoglobin=hemoglobin,
+        total_cholesterol=total_cholesterol,
+        hdl_cholesterol=hdl_cholesterol,
+        triglycerides=triglycerides,
+        ldl_cholesterol=ldl_cholesterol,
+        ast=ast,
+        alt=alt,
+        y_gtp=y_gtp,
+        creatinine=creatinine,
+        e_gfr=e_gfr,
+        summary=summary,
+        judgment=judgment
+    )
+
+    if images:
+        for image in images:
+            if image.filename:
+                image_path = await save_upload_file(image)
+                await CheckupImage.create(checkup=log, image_path=image_path)
+    
+    return RedirectResponse(url="/checkup", status_code=303)
+
+
+@router.post("/checkup/{log_id}/delete")
+async def delete_checkup(log_id: int):
+    user = await get_or_create_default_user()
+    log = await CheckupLog.get_or_none(id=log_id, user=user).prefetch_related("images")
+    if log:
+        for img in log.images:
+            delete_upload_file(img.image_path)
+        delete_upload_file(log.image_path)
+        await log.delete()
+    return RedirectResponse(url="/checkup", status_code=303)
+
+
+@router.post("/checkup/{log_id}/upload-image")
+async def upload_checkup_image(log_id: int, images: list[UploadFile] = File(...)):
+    user = await get_or_create_default_user()
+    log = await CheckupLog.get_or_none(id=log_id, user=user)
+    if log:
+        for image in images:
+            if image.filename:
+                image_path = await save_upload_file(image)
+                await CheckupImage.create(checkup=log, image_path=image_path)
+    return RedirectResponse(url="/checkup", status_code=303)
 
 
 @router.get("/report")
