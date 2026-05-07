@@ -1,64 +1,108 @@
-from datetime import date, datetime
+import os
+import shutil
+import uuid
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Form, Request, UploadFile, File
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-import matplotlib
 import pandas as pd
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import koreanize_matplotlib
-
+import plotly.express as px
 
 from app.models.exercise import ExerciseLog #
 from app.models.meal import MealLog #
 from app.models.sleep import SleepLog #
 from app.models.water import WaterLog
-# from app.services.mock_data import (
-#     add_exercise,
-#     add_meal,
-#     add_sleep,
-#     delete_exercise,
-#     delete_meal,
-#     delete_sleep,
-#     list_exercise,
-#     list_meal,
-#     list_sleep,
-#     update_exercise,
-#     update_meal,
-#     update_sleep,
-# )
+from app.models.blood_pressure import BloodPressureLog
+from app.models.inbody import InBodyLog
+from app.models.cardio import CardioLog
+from app.models.vision import VisionLog
+from app.models.vaccine import VaccineLog
+from app.models.eeg import EEGLog
 from app.services.users import get_or_create_default_user
 
 router = APIRouter()
+
+async def save_upload_file(image: UploadFile | None) -> str | None:
+    if not image or not image.filename:
+        return None
+    upload_dir = "app/static/uploads"
+    os.makedirs(upload_dir, exist_ok=True)
+    ext = os.path.splitext(image.filename)[1]
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = os.path.join(upload_dir, filename)
+    with open(filepath, "wb") as buffer:
+        shutil.copyfileobj(image.file, buffer)
+    return f"/static/uploads/{filename}"
+
+def delete_upload_file(image_path: str | None):
+    if image_path:
+        file_path = os.path.join("app", image_path.lstrip("/"))
+        if os.path.exists(file_path):
+            os.remove(file_path)
 templates = Jinja2Templates(directory="app/templates")
 
-def build_water_report(logs: list[WaterLog], output_path: Path) -> None:
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    if not logs:
-        plt.figure(figsize=(7, 3.5))
-        plt.text(0.5, 0.5, "데이터 없음", ha="center", va="center", fontsize=12)
-        plt.axis("off")
-        plt.tight_layout()
-        plt.savefig(output_path, dpi=140)
-        plt.close()
-        return
-
+def build_water_chart(logs: list[WaterLog]) -> str | None:
+    if not logs: return None
     rows = [{"date": log.logged_at.date(), "amount_ml": log.amount_ml} for log in logs]
     df = pd.DataFrame(rows)
     daily = df.groupby("date", as_index=False)["amount_ml"].sum()
+    
+    fig = px.bar(daily, x="date", y="amount_ml", title="일별 수분 섭취량 (ml)", template="plotly_dark", color_discrete_sequence=["#8c95ff"])
+    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(t=50, b=20, l=20, r=20))
+    return fig.to_html(full_html=False, include_plotlyjs=False)
 
-    plt.figure(figsize=(7, 3.5))
-    plt.bar(daily["date"].astype(str), daily["amount_ml"], color="#6e7bff")
-    plt.title("일별 수분 섭취량")
-    plt.ylabel("ml")
-    plt.xticks(rotation=45, ha="right")
-    plt.tight_layout()
-    plt.savefig(output_path, dpi=140)
-    plt.close()
+def build_exercise_chart(logs: list[ExerciseLog]) -> str | None:
+    if not logs: return None
+    rows = [{"date": log.logged_at.date(), "duration_min": log.duration_min, "activity": log.activity} for log in logs]
+    df = pd.DataFrame(rows)
+    daily = df.groupby(["date", "activity"], as_index=False)["duration_min"].sum()
+    
+    fig = px.bar(daily, x="date", y="duration_min", color="activity", title="일별 운동 시간 (분)", template="plotly_dark")
+    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(t=50, b=20, l=20, r=20), barmode="stack")
+    return fig.to_html(full_html=False, include_plotlyjs=False)
+
+def build_sleep_chart(logs: list[SleepLog]) -> str | None:
+    if not logs: return None
+    rows = [{"date": log.sleep_date, "quality": log.quality or 0} for log in logs]
+    df = pd.DataFrame(rows)
+    
+    fig = px.line(df, x="date", y="quality", title="일별 수면 품질 변화 (1~5)", markers=True, template="plotly_dark", color_discrete_sequence=["#29cdb5"])
+    fig.update_yaxes(range=[0, 5.5])
+    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(t=50, b=20, l=20, r=20))
+    return fig.to_html(full_html=False, include_plotlyjs=False)
+
+def build_inbody_chart(logs: list[InBodyLog]) -> str | None:
+    if not logs: return None
+    rows = []
+    for log in logs:
+        rows.append({"date": log.measured_at, "value": log.weight, "metric": "체중 (kg)"})
+        rows.append({"date": log.measured_at, "value": log.skeletal_muscle_mass, "metric": "골격근량 (kg)"})
+        rows.append({"date": log.measured_at, "value": log.percent_body_fat, "metric": "체지방률 (%)"})
+    
+    df = pd.DataFrame(rows).sort_values("date")
+    
+    fig = px.line(df, x="date", y="value", color="metric", title="", markers=True, template="plotly_dark", 
+                  color_discrete_sequence=["#ffb347", "#8c95ff", "#29cdb5"])
+    
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)", 
+        plot_bgcolor="rgba(0,0,0,0)", 
+        margin=dict(t=10, b=10, l=10, r=10),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
+    return fig.to_html(full_html=False, include_plotlyjs=False)
+
+def build_cardio_chart(logs: list[CardioLog]) -> str | None:
+    if not logs: return None
+    rows = [{"date": log.measured_at, "cardio_age": log.cardio_age} for log in logs if log.cardio_age is not None]
+    if not rows: return None
+    df = pd.DataFrame(rows).sort_values("date")
+    
+    fig = px.line(df, x="date", y="cardio_age", title="심뇌혈관 나이 변화 추이", markers=True, template="plotly_dark", color_discrete_sequence=["#ff6b6b"])
+    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(t=50, b=20, l=20, r=20))
+    return fig.to_html(full_html=False, include_plotlyjs=False)
 
 
 @router.get("/")
@@ -280,14 +324,400 @@ async def delete_meal(log_id: int):
     return RedirectResponse(url="/meal", status_code=303)
 
 
+@router.get("/blood-pressure")
+async def blood_pressure_page(request: Request):
+    user = await get_or_create_default_user()
+    logs = await BloodPressureLog.filter(user=user).order_by("-measured_at")
+    return templates.TemplateResponse(
+        request, "blood_pressure.html", {"user": user, "logs": logs}
+    )
+
+
+@router.post("/blood-pressure")
+async def add_blood_pressure(
+    measured_at: str = Form(...),
+    systolic: int = Form(...),
+    diastolic: int = Form(...),
+    mean_pressure: int | None = Form(None),
+    pulse: int = Form(...),
+    heart_burden: int | None = Form(None),
+    pulse_wave_pattern: str | None = Form(None),
+    image: UploadFile | None = File(None),
+):
+    user = await get_or_create_default_user()
+    image_path = await save_upload_file(image)
+    
+    await BloodPressureLog.create(
+        user=user,
+        measured_at=datetime.fromisoformat(measured_at),
+        systolic=systolic,
+        diastolic=diastolic,
+        mean_pressure=mean_pressure,
+        pulse=pulse,
+        heart_burden=heart_burden,
+        pulse_wave_pattern=pulse_wave_pattern,
+        image_path=image_path
+    )
+    return RedirectResponse(url="/blood-pressure", status_code=303)
+
+
+@router.post("/blood-pressure/{log_id}/edit")
+async def edit_blood_pressure(
+    log_id: int,
+    measured_at: str = Form(...),
+    systolic: int = Form(...),
+    diastolic: int = Form(...),
+    mean_pressure: int | None = Form(None),
+    pulse: int = Form(...),
+    heart_burden: int | None = Form(None),
+    pulse_wave_pattern: str | None = Form(None),
+):
+    user = await get_or_create_default_user()
+    log = await BloodPressureLog.get_or_none(id=log_id, user=user)
+    if log:
+        log.measured_at = datetime.fromisoformat(measured_at)
+        log.systolic = systolic
+        log.diastolic = diastolic
+        log.mean_pressure = mean_pressure
+        log.pulse = pulse
+        log.heart_burden = heart_burden
+        log.pulse_wave_pattern = pulse_wave_pattern
+        await log.save(update_fields=[
+            "measured_at", "systolic", "diastolic", "mean_pressure", 
+            "pulse", "heart_burden", "pulse_wave_pattern"
+        ])
+    return RedirectResponse(url="/blood-pressure", status_code=303)
+
+
+@router.post("/blood-pressure/{log_id}/delete")
+async def delete_blood_pressure(log_id: int):
+    user = await get_or_create_default_user()
+    log = await BloodPressureLog.get_or_none(id=log_id, user=user)
+    if log:
+        delete_upload_file(log.image_path)
+        await log.delete()
+    return RedirectResponse(url="/blood-pressure", status_code=303)
+
+
+@router.get("/inbody")
+async def inbody_page(request: Request):
+    user = await get_or_create_default_user()
+    logs = await InBodyLog.filter(user=user).order_by("measured_at")
+    
+    chart_html = build_inbody_chart(logs)
+    
+    # Reverse logs for displaying latest first in the list
+    logs_reversed = list(reversed(logs))
+    
+    return templates.TemplateResponse(
+        request, "inbody.html", {"user": user, "logs": logs_reversed, "chart_html": chart_html}
+    )
+
+
+@router.post("/inbody")
+async def add_inbody(
+    measured_at: str = Form(...),
+    weight: float = Form(...),
+    skeletal_muscle_mass: float = Form(...),
+    body_fat_mass: float = Form(...),
+    bmi: float = Form(...),
+    percent_body_fat: float = Form(...),
+    inbody_score: int = Form(...),
+    image: UploadFile | None = File(None),
+):
+    user = await get_or_create_default_user()
+    image_path = await save_upload_file(image)
+    
+    await InBodyLog.create(
+        user=user,
+        measured_at=datetime.fromisoformat(measured_at),
+        weight=weight,
+        skeletal_muscle_mass=skeletal_muscle_mass,
+        body_fat_mass=body_fat_mass,
+        bmi=bmi,
+        percent_body_fat=percent_body_fat,
+        inbody_score=inbody_score,
+        image_path=image_path
+    )
+    return RedirectResponse(url="/inbody", status_code=303)
+
+
+@router.post("/inbody/{log_id}/delete")
+async def delete_inbody(log_id: int):
+    user = await get_or_create_default_user()
+    log = await InBodyLog.get_or_none(id=log_id, user=user)
+    if log:
+        delete_upload_file(log.image_path)
+        await log.delete()
+    return RedirectResponse(url="/inbody", status_code=303)
+
+
+@router.get("/cardio")
+async def cardio_page(request: Request):
+    user = await get_or_create_default_user()
+    logs = await CardioLog.filter(user=user).order_by("measured_at")
+    chart_html = build_cardio_chart(logs)
+    return templates.TemplateResponse(
+        request, "cardio.html", {"user": user, "logs": list(reversed(logs)), "chart_html": chart_html}
+    )
+
+
+@router.post("/cardio")
+async def add_cardio(
+    measured_at: str = Form(...),
+    hospital_name: str | None = Form(None),
+    cardio_age: int | None = Form(None),
+    risk_ratio: float | None = Form(None),
+    risk_percent: float | None = Form(None),
+    weight: float | None = Form(None),
+    waist: float | None = Form(None),
+    activity_note: str | None = Form(None),
+    alcohol_note: str | None = Form(None),
+    bp_systolic: int | None = Form(None),
+    bp_diastolic: int | None = Form(None),
+    smoking_status: str | None = Form(None),
+    fasting_blood_sugar: int | None = Form(None),
+    total_cholesterol: int | None = Form(None),
+    ldl_cholesterol: int | None = Form(None),
+    image: UploadFile | None = File(None),
+):
+    user = await get_or_create_default_user()
+    image_path = await save_upload_file(image)
+    
+    await CardioLog.create(
+        user=user,
+        measured_at=datetime.fromisoformat(measured_at),
+        hospital_name=hospital_name,
+        cardio_age=cardio_age,
+        risk_ratio=risk_ratio,
+        risk_percent=risk_percent,
+        weight=weight,
+        waist=waist,
+        activity_note=activity_note,
+        alcohol_note=alcohol_note,
+        bp_systolic=bp_systolic,
+        bp_diastolic=bp_diastolic,
+        smoking_status=smoking_status,
+        fasting_blood_sugar=fasting_blood_sugar,
+        total_cholesterol=total_cholesterol,
+        ldl_cholesterol=ldl_cholesterol,
+        image_path=image_path
+    )
+    return RedirectResponse(url="/cardio", status_code=303)
+
+
+@router.post("/cardio/{log_id}/edit")
+async def edit_cardio(
+    log_id: int,
+    measured_at: str = Form(...),
+    hospital_name: str | None = Form(None),
+    cardio_age: int | None = Form(None),
+    risk_ratio: float | None = Form(None),
+    risk_percent: float | None = Form(None),
+    weight: float | None = Form(None),
+    waist: float | None = Form(None),
+    activity_note: str | None = Form(None),
+    alcohol_note: str | None = Form(None),
+    bp_systolic: int | None = Form(None),
+    bp_diastolic: int | None = Form(None),
+    smoking_status: str | None = Form(None),
+    fasting_blood_sugar: int | None = Form(None),
+    total_cholesterol: int | None = Form(None),
+    ldl_cholesterol: int | None = Form(None),
+):
+    user = await get_or_create_default_user()
+    log = await CardioLog.get_or_none(id=log_id, user=user)
+    if log:
+        log.measured_at = datetime.fromisoformat(measured_at)
+        log.hospital_name = hospital_name
+        log.cardio_age = cardio_age
+        log.risk_ratio = risk_ratio
+        log.risk_percent = risk_percent
+        log.weight = weight
+        log.waist = waist
+        log.activity_note = activity_note
+        log.alcohol_note = alcohol_note
+        log.bp_systolic = bp_systolic
+        log.bp_diastolic = bp_diastolic
+        log.smoking_status = smoking_status
+        log.fasting_blood_sugar = fasting_blood_sugar
+        log.total_cholesterol = total_cholesterol
+        log.ldl_cholesterol = ldl_cholesterol
+        await log.save(update_fields=[
+            "measured_at", "hospital_name", "cardio_age", "risk_ratio", "risk_percent",
+            "weight", "waist", "activity_note", "alcohol_note", "bp_systolic",
+            "bp_diastolic", "smoking_status", "fasting_blood_sugar",
+            "total_cholesterol", "ldl_cholesterol"
+        ])
+    return RedirectResponse(url="/cardio", status_code=303)
+
+
+@router.post("/cardio/{log_id}/delete")
+async def delete_cardio(log_id: int):
+    user = await get_or_create_default_user()
+    log = await CardioLog.get_or_none(id=log_id, user=user)
+    if log:
+        delete_upload_file(log.image_path)
+        await log.delete()
+    return RedirectResponse(url="/cardio", status_code=303)
+
+
+@router.get("/vision")
+async def vision_page(request: Request):
+    user = await get_or_create_default_user()
+    logs = await VisionLog.filter(user=user).order_by("-measured_at")
+    return templates.TemplateResponse(
+        request, "vision.html", {"user": user, "logs": logs}
+    )
+
+
+@router.post("/vision")
+async def add_vision(
+    measured_at: str = Form(...),
+    hospital_name: str | None = Form(None),
+    sph_right: float | None = Form(None),
+    sph_left: float | None = Form(None),
+    cyl_right: float | None = Form(None),
+    cyl_left: float | None = Form(None),
+    axis_right: int | None = Form(None),
+    axis_left: int | None = Form(None),
+    pd: float | None = Form(None),
+    image: UploadFile | None = File(None),
+):
+    user = await get_or_create_default_user()
+    image_path = await save_upload_file(image)
+
+    await VisionLog.create(
+        user=user,
+        measured_at=datetime.fromisoformat(measured_at),
+        hospital_name=hospital_name,
+        sph_right=sph_right,
+        sph_left=sph_left,
+        cyl_right=cyl_right,
+        cyl_left=cyl_left,
+        axis_right=axis_right,
+        axis_left=axis_left,
+        pd=pd,
+        image_path=image_path
+    )
+    return RedirectResponse(url="/vision", status_code=303)
+
+
+@router.post("/vision/{log_id}/delete")
+async def delete_vision(log_id: int):
+    user = await get_or_create_default_user()
+    log = await VisionLog.get_or_none(id=log_id, user=user)
+    if log:
+        delete_upload_file(log.image_path)
+        await log.delete()
+    return RedirectResponse(url="/vision", status_code=303)
+
+
+@router.get("/vaccine")
+async def vaccine_page(request: Request):
+    user = await get_or_create_default_user()
+    logs = await VaccineLog.filter(user=user).order_by("-measured_at")
+    return templates.TemplateResponse(
+        request, "vaccine.html", {"user": user, "logs": logs}
+    )
+
+
+@router.post("/vaccine")
+async def add_vaccine(
+    measured_at: str = Form(...),
+    vaccine_name: str = Form(...),
+    dose_number: str = Form(...),
+    hospital_name: str | None = Form(None),
+    image: UploadFile | None = File(None),
+):
+    user = await get_or_create_default_user()
+    image_path = await save_upload_file(image)
+
+    await VaccineLog.create(
+        user=user,
+        measured_at=datetime.fromisoformat(measured_at),
+        vaccine_name=vaccine_name,
+        dose_number=dose_number,
+        hospital_name=hospital_name,
+        image_path=image_path
+    )
+    return RedirectResponse(url="/vaccine", status_code=303)
+
+
+@router.post("/vaccine/{log_id}/delete")
+async def delete_vaccine(log_id: int):
+    user = await get_or_create_default_user()
+    log = await VaccineLog.get_or_none(id=log_id, user=user)
+    if log:
+        delete_upload_file(log.image_path)
+        await log.delete()
+    return RedirectResponse(url="/vaccine", status_code=303)
+
+
+@router.get("/eeg")
+async def eeg_page(request: Request):
+    user = await get_or_create_default_user()
+    logs = await EEGLog.filter(user=user).order_by("-measured_at")
+    return templates.TemplateResponse(
+        request, "eeg.html", {"user": user, "logs": logs}
+    )
+
+
+@router.post("/eeg")
+async def add_eeg(
+    measured_at: str = Form(...),
+    eyes_condition: str | None = Form(None),
+    clinician: str | None = Form(None),
+    comments: str | None = Form(None),
+    summary: str | None = Form(None),
+    ai_interpretation: str | None = Form(None),
+    image: UploadFile | None = File(None),
+):
+    user = await get_or_create_default_user()
+    image_path = await save_upload_file(image)
+
+    await EEGLog.create(
+        user=user,
+        measured_at=datetime.fromisoformat(measured_at),
+        eyes_condition=eyes_condition,
+        clinician=clinician,
+        comments=comments,
+        summary=summary,
+        ai_interpretation=ai_interpretation,
+        image_path=image_path
+    )
+    return RedirectResponse(url="/eeg", status_code=303)
+
+
+@router.post("/eeg/{log_id}/delete")
+async def delete_eeg(log_id: int):
+    user = await get_or_create_default_user()
+    log = await EEGLog.get_or_none(id=log_id, user=user)
+    if log:
+        delete_upload_file(log.image_path)
+        await log.delete()
+    return RedirectResponse(url="/eeg", status_code=303)
+
+
+@router.get("/eeg/guide")
+async def eeg_guide_page(request: Request):
+    return templates.TemplateResponse(request, "eeg_guide.html", {})
+
+
 @router.get("/report")
 async def report_page(request: Request):
     user = await get_or_create_default_user()
-    logs = await WaterLog.filter(user=user).order_by("logged_at")
-    output_path = Path("app/static/img/water_report.png")
-    build_water_report(logs, output_path)
-    total_water = sum(log.amount_ml for log in logs)
-    days = len({log.logged_at.date() for log in logs})
+    
+    water_logs = await WaterLog.filter(user=user).order_by("logged_at")
+    exercise_logs = await ExerciseLog.filter(user=user).order_by("logged_at")
+    sleep_logs = await SleepLog.filter(user=user).order_by("sleep_date")
+    
+    water_chart = build_water_chart(water_logs)
+    exercise_chart = build_exercise_chart(exercise_logs)
+    sleep_chart = build_sleep_chart(sleep_logs)
+    
+    total_water = sum(log.amount_ml for log in water_logs)
+    days = len({log.logged_at.date() for log in water_logs})
     avg_per_day = round(total_water / days, 1) if days else 0
 
     return templates.TemplateResponse(
@@ -295,7 +725,9 @@ async def report_page(request: Request):
         "report.html",
         {
             "user": user,
-            "chart_url": "/static/img/water_report.png",
+            "water_chart": water_chart,
+            "exercise_chart": exercise_chart,
+            "sleep_chart": sleep_chart,
             "total_water": total_water,
             "days": days,
             "avg_per_day": avg_per_day,

@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% set body_class = "page-cardio" %}
+{% block title %}심뇌혈관 평가 | 건강관리{% endblock %}
+{% block content %}
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+
+<section class="page-header">
+  <div>
+    <h1>심뇌혈관질환 위험평가</h1>
+    <p class="muted">건강검진 결과지를 바탕으로 주요 지표들을 기록하고 관리하세요.</p>
+  </div>
+  <form class="form" method="post" action="/cardio" enctype="multipart/form-data">
+    <label>
+      검진일자
+      <input type="text" class="datetime-picker-new" name="measured_at" placeholder="날짜 선택" required />
+    </label>
+    <label>
+      검진기관 (어디서 검사 받았는지)
+      <input type="text" name="hospital_name" placeholder="예: 내안애내과" />
+    </label>
+    
+    <div style="display: flex; gap: 10px;">
+      <label style="flex: 1;">
+        심뇌혈관 나이
+        <input type="number" name="cardio_age" placeholder="세" />
+      </label>
+      <label style="flex: 1;">
+        발병위험 배수
+        <input type="number" step="0.01" name="risk_ratio" placeholder="배" />
+      </label>
+      <label style="flex: 1;">
+        발병 확률
+        <input type="number" step="0.1" name="risk_percent" placeholder="%" />
+      </label>
+    </div>
+
+    <div style="display: flex; gap: 10px;">
+      <label style="flex: 1;">
+        체중 (kg)
+        <input type="number" step="0.1" name="weight" />
+      </label>
+      <label style="flex: 1;">
+        허리둘레 (cm)
+        <input type="number" step="0.1" name="waist" />
+      </label>
+    </div>
+
+    <div style="display: flex; gap: 10px;">
+      <label style="flex: 1;">
+        혈압 (최고/최저)
+        <div style="display: flex; gap: 5px;">
+          <input type="number" name="bp_systolic" placeholder="SYS" style="flex:1;" />
+          <input type="number" name="bp_diastolic" placeholder="DIA" style="flex:1;" />
+        </div>
+      </label>
+      <label style="flex: 1;">
+        공복혈당
+        <input type="number" name="fasting_blood_sugar" />
+      </label>
+    </div>
+
+    <div style="display: flex; gap: 10px;">
+      <label style="flex: 1;">
+        신체활동
+        <input type="text" name="activity_note" placeholder="예: 주 8회" />
+      </label>
+      <label style="flex: 1;">
+        음주
+        <input type="text" name="alcohol_note" placeholder="예: 일주일 3잔" />
+      </label>
+      <label style="flex: 1;">
+        흡연
+        <input type="text" name="smoking_status" placeholder="예: 비흡연" />
+      </label>
+    </div>
+
+    <label style="margin-top: 10px;">
+      심뇌혈관 평가 결과지 원본 사진 첨부
+      <input type="file" name="image" accept="image/*" />
+    </label>
+
+    <button type="submit">기록 추가</button>
+  </form>
+</section>
+
+{% if chart_html %}
+<section class="card">
+  <div class="card-header">
+    <h2>심뇌혈관 나이 변화 추이</h2>
+  </div>
+  <div class="chart-wrap" style="width: 100%; height: 400px; border-radius: 8px; margin-top: 20px;">
+    {{ chart_html | safe }}
+  </div>
+</section>
+{% endif %}
+
+<section class="card">
+  <div class="card-header">
+    <h2>검사 기록 목록</h2>
+    <span class="chip">총 {{ logs|length }} 건</span>
+  </div>
+  <ul class="list">
+    {% for log in logs %}
+    <li class="list-row" style="flex-direction: column; align-items: stretch; gap: 10px;">
+      <div class="item-main" style="width: 100%; display: flex; justify-content: space-between; align-items: flex-start;">
+        <div style="flex: 1;">
+          <span>{{ log.measured_at.strftime("%Y-%m-%d") }} @ {{ log.hospital_name or '미상' }}</span>
+          <strong>위험 배수: {{ log.risk_ratio }}배 ({{ log.risk_percent }}%) | 심뇌혈관 나이: {{ log.cardio_age }}세</strong>
+          <span class="muted" style="font-size: 0.85em;">혈압: {{ log.bp_systolic }}/{{ log.bp_diastolic }} | 혈당: {{ log.fasting_blood_sugar }} | 신체활동: {{ log.activity_note }}</span>
+          
+          {% if log.image_path %}
+          <div style="margin-top: 10px;">
+            <button type="button" class="button-secondary" style="font-size: 0.8em; padding: 4px 8px;" onclick="const img = document.getElementById('img-{{ log.id }}'); img.style.display = img.style.display==='none' ? 'block' : 'none';">🖼 원본 보기 토글</button>
+            <img id="img-{{ log.id }}" src="{{ log.image_path }}" style="display: none; max-width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid var(--border-color);" />
+          </div>
+          {% endif %}
+        </div>
+        <div class="item-actions" style="display: flex; gap: 5px;">
+          <button type="button" class="button-secondary" onclick="const f=document.getElementById('edit-form-{{ log.id }}'); f.style.display = f.style.display==='none' ? 'block' : 'none'; this.innerText = f.style.display==='none' ? '🔒 수정' : '🔓 닫기';" style="min-width: 80px;">🔒 수정</button>
+          <form method="post" action="/cardio/{{ log.id }}/delete" style="margin:0;">
+            <button class="button-danger" type="submit">삭제</button>
+          </form>
+        </div>
+      </div>
+      
+      <!-- 수정 폼 (숨김) -->
+      <form id="edit-form-{{ log.id }}" class="form" method="post" action="/cardio/{{ log.id }}/edit" style="display: none; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; margin-top: 10px; border: 1px solid var(--border-color);">
+        <div style="display: flex; gap: 10px;">
+          <label style="flex: 1; font-size: 0.85em;">검진일자
+            <input type="text" class="datetime-picker-edit" name="measured_at" value="{{ log.measured_at.strftime('%Y-%m-%dT00:00:00') }}" required />
+          </label>
+          <label style="flex: 1; font-size: 0.85em;">검진기관
+            <input type="text" name="hospital_name" value="{{ log.hospital_name or '' }}" />
+          </label>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <label style="flex: 1; font-size: 0.85em;">심뇌혈관 나이
+            <input type="number" name="cardio_age" value="{{ log.cardio_age or '' }}" />
+          </label>
+          <label style="flex: 1; font-size: 0.85em;">위험 배수
+            <input type="number" step="0.01" name="risk_ratio" value="{{ log.risk_ratio or '' }}" />
+          </label>
+          <label style="flex: 1; font-size: 0.85em;">위험 확률 (%)
+            <input type="number" step="0.1" name="risk_percent" value="{{ log.risk_percent or '' }}" />
+          </label>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <label style="flex: 1; font-size: 0.85em;">체중 (kg)
+            <input type="number" step="0.1" name="weight" value="{{ log.weight or '' }}" />
+          </label>
+          <label style="flex: 1; font-size: 0.85em;">허리둘레 (cm)
+            <input type="number" step="0.1" name="waist" value="{{ log.waist or '' }}" />
+          </label>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <label style="flex: 1; font-size: 0.85em;">최고혈압 (SYS)
+            <input type="number" name="bp_systolic" value="{{ log.bp_systolic or '' }}" />
+          </label>
+          <label style="flex: 1; font-size: 0.85em;">최저혈압 (DIA)
+            <input type="number" name="bp_diastolic" value="{{ log.bp_diastolic or '' }}" />
+          </label>
+          <label style="flex: 1; font-size: 0.85em;">공복혈당
+            <input type="number" name="fasting_blood_sugar" value="{{ log.fasting_blood_sugar or '' }}" />
+          </label>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <label style="flex: 1; font-size: 0.85em;">신체활동
+            <input type="text" name="activity_note" value="{{ log.activity_note or '' }}" />
+          </label>
+          <label style="flex: 1; font-size: 0.85em;">음주
+            <input type="text" name="alcohol_note" value="{{ log.alcohol_note or '' }}" />
+          </label>
+          <label style="flex: 1; font-size: 0.85em;">흡연
+            <input type="text" name="smoking_status" value="{{ log.smoking_status or '' }}" />
+          </label>
+        </div>
+        <button type="submit" style="width: 100%;">저장</button>
+      </form>
+    </li>
+    {% else %}
+    <li class="muted">아직 기록이 없습니다.</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/ko.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // 새 기록용 (기본값 오늘)
+    flatpickr(".datetime-picker-new", {
+      enableTime: false,
+      dateFormat: "Y-m-d\\T00:00:00",
+      locale: "ko",
+      defaultDate: new Date()
+    });
+    
+    // 수정용 (기존 값 유지)
+    flatpickr(".datetime-picker-edit", {
+      enableTime: false,
+      dateFormat: "Y-m-d\\T00:00:00",
+      locale: "ko"
+    });
+  });
+</script>
+{% endblock %}

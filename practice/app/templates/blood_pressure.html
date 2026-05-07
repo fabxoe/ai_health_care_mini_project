@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% set body_class = "page-blood-pressure" %}
+{% block title %}혈압 | 건강관리{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>혈압 기록</h1>
+    <p class="muted">혈압계에서 측정한 데이터를 기록하세요.</p>
+  </div>
+  <div class="illustration">
+    <svg viewBox="0 0 160 120" aria-hidden="true">
+      <path d="M80 20C40 20 20 50 20 70C20 90 40 100 80 100C120 100 140 90 140 70C140 50 120 20 80 20Z" fill="#ff6b6b" opacity="0.8"/>
+      <path d="M70 50L80 70L90 40L100 60" stroke="#fff" stroke-width="4" fill="none" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <form class="form" method="post" action="/blood-pressure" enctype="multipart/form-data">
+    <label>
+      측정 일시
+      <input type="text" class="datetime-picker" name="measured_at" placeholder="날짜 및 시간 선택" required />
+    </label>
+    <div style="display: flex; gap: 10px;">
+      <label style="flex: 1;">
+        최고혈압 (SYS)
+        <input type="number" name="systolic" required placeholder="mmHg" />
+      </label>
+      <label style="flex: 1;">
+        최저혈압 (DIA)
+        <input type="number" name="diastolic" required placeholder="mmHg" />
+      </label>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <label style="flex: 1;">
+        평균혈압 (MAP)
+        <input type="number" name="mean_pressure" placeholder="mmHg" />
+      </label>
+      <label style="flex: 1;">
+        맥박수 (Pulse)
+        <input type="number" name="pulse" required placeholder="bpm" />
+      </label>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <label style="flex: 1;">
+        심부담 (Burden)
+        <input type="number" name="heart_burden" placeholder="7000~12000" />
+      </label>
+      <label style="flex: 1;">
+        맥파 패턴
+        <input type="text" name="pulse_wave_pattern" placeholder="None" />
+      </label>
+    </div>
+    
+    <label style="margin-top: 10px;">
+      측정 결과 원본 사진 첨부
+      <input type="file" name="image" accept="image/*" />
+    </label>
+
+    <button type="submit">기록 추가</button>
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-header">
+    <h2>기록 목록</h2>
+    <span class="chip">총 {{ logs|length }} 건</span>
+  </div>
+  <ul class="list">
+    {% for log in logs %}
+    <li class="list-row" style="flex-direction: column; align-items: stretch; gap: 10px;">
+      <div class="item-main" style="width: 100%;">
+        <span>{{ log.measured_at.strftime("%Y-%m-%d %H:%M") }}</span>
+        <strong>혈압: {{ log.systolic }} / {{ log.diastolic }} mmHg (맥박: {{ log.pulse }}bpm)</strong>
+        <span class="muted" style="font-size: 0.85em;">평균: {{ log.mean_pressure or '-' }} | 심부담: {{ log.heart_burden or '-' }} | 패턴: {{ log.pulse_wave_pattern or 'None' }}</span>
+        
+        {% if log.image_path %}
+        <div style="margin-top: 10px;">
+          <button type="button" class="button-secondary" style="font-size: 0.8em; padding: 4px 8px;" onclick="const img = document.getElementById('img-{{ log.id }}'); img.style.display = img.style.display==='none' ? 'block' : 'none';">🖼 원본 보기 토글</button>
+          <img id="img-{{ log.id }}" src="{{ log.image_path }}" style="display: none; max-width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid var(--border-color);" />
+        </div>
+        {% endif %}
+      </div>
+      <div class="item-actions" style="justify-content: flex-end;">
+        <form method="post" action="/blood-pressure/{{ log.id }}/delete" style="margin:0;">
+          <button class="button-danger" type="submit">삭제</button>
+        </form>
+      </div>
+    </li>
+    {% else %}
+    <li class="muted">아직 기록이 없습니다.</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/ko.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    flatpickr(".datetime-picker", {
+      enableTime: true,
+      dateFormat: "Y-m-d\\TH:i",
+      time_24hr: true,
+      locale: "ko",
+      minuteIncrement: 5,
+      defaultDate: new Date()
+    });
+  });
+</script>
+{% endblock %}

@@ -97,3 +97,94 @@ class MealOut(BaseModel):
     eaten_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class BloodPressureCreate(BaseModel):
+    user_id: int
+    measured_at: datetime
+    systolic: int
+    diastolic: int
+    mean_pressure: int | None = None
+    pulse: int
+    heart_burden: int | None = None
+    pulse_wave_pattern: str | None = None
+
+
+class BloodPressureOut(BaseModel):
+    id: ModelID
+    user_id: int
+    measured_at: datetime
+    systolic: int
+    diastolic: int
+    mean_pressure: int | None
+    pulse: int
+    heart_burden: int | None
+    pulse_wave_pattern: str | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class InBodyCreate(BaseModel):
+    user_id: int
+    measured_at: datetime
+    weight: float
+    skeletal_muscle_mass: float
+    body_fat_mass: float
+    bmi: float
+    percent_body_fat: float
+    inbody_score: int
+
+
+class InBodyOut(BaseModel):
+    id: ModelID
+    user_id: int
+    measured_at: datetime
+    weight: float
+    skeletal_muscle_mass: float
+    body_fat_mass: float
+    bmi: float
+    percent_body_fat: float
+    inbody_score: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CardioCreate(BaseModel):
+    user_id: int
+    measured_at: datetime
+    hospital_name: str | None = None
+    cardio_age: int | None = None
+    risk_ratio: float | None = None
+    risk_percent: float | None = None
+    weight: float | None = None
+    waist: float | None = None
+    activity_note: str | None = None
+    alcohol_note: str | None = None
+    bp_systolic: int | None = None
+    bp_diastolic: int | None = None
+    smoking_status: str | None = None
+    fasting_blood_sugar: int | None = None
+    total_cholesterol: int | None = None
+    ldl_cholesterol: int | None = None
+
+
+class CardioOut(BaseModel):
+    id: ModelID
+    user_id: int
+    measured_at: datetime
+    hospital_name: str | None
+    cardio_age: int | None
+    risk_ratio: float | None
+    risk_percent: float | None
+    weight: float | None
+    waist: float | None
+    activity_note: str | None
+    alcohol_note: str | None
+    bp_systolic: int | None
+    bp_diastolic: int | None
+    smoking_status: str | None
+    fasting_blood_sugar: int | None
+    total_cholesterol: int | None
+    ldl_cholesterol: int | None
+
+    model_config = ConfigDict(from_attributes=True)

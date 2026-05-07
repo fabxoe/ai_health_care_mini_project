@@ -18,7 +18,12 @@ async def init_db() -> None:
                 "app.models.exercise",
                 "app.models.sleep",
                 "app.models.meal",
-                # TODO: Exercise/Sleep/Meal 모델을 추가하세요.
+                "app.models.blood_pressure",
+                "app.models.inbody",
+                "app.models.cardio",
+                "app.models.vision",
+                "app.models.vaccine",
+                "app.models.eeg",
             ]
         },
         _enable_global_fallback=True,
